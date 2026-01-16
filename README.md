@@ -42,6 +42,8 @@ docker build -t quantum-hep-agent .
 # Run the training script
 docker run quantum-hep-agent
 
+```
+
 ## Technology Stack
 Quantum: Qiskit, Qiskit Machine Learning
 
