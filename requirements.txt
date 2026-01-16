@@ -1,0 +1,8 @@
+qiskit>=1.0.0
+qiskit-machine-learning
+torch
+numpy
+pandas
+matplotlib
+scikit-learn
+jupyterlab
