@@ -1,25 +1,52 @@
-# Quantum Autoencoder for Anomaly Detection in High-Energy Physics
+#  Quantum Autoencoder for Anomaly Detection in HEP
 
-## Abstract
-This project implements a **Hybrid Quantum-Classical Autoencoder** to compress and analyze kinematic data from the **ATLAS experiment** at the LHC. By leveraging a parametrized quantum circuit (PQC) with 4 qubits, the model learns a latent representation of particle jets ($p_T, \eta, \phi, m$) to distinguish between standard model background and potential anomalous signals.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![Qiskit](https://img.shields.io/badge/Qiskit-1.0%2B-purple)](https://qiskit.org/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-blue)](https://www.docker.com/)
 
-## Methodology
-* **Data Source:** ATLAS/CMS Open Data (Kinematic features normalized to $[0, 1]$).
-* **Architecture:**
-    * **Feature Map:** `ZZFeatureMap` (Linear Entanglement) for quantum embedding.
-    * **Ansatz:** `RealAmplitudes` variational form (depth=1).
-    * **Optimization:** Hybrid loop using **PyTorch** (Adam Optimizer) and **Qiskit** (SamplerQNN).
-* **Performance:**
-    * Demonstrated convergence of the cost function (MSE) over 15 epochs.
-    * Benchmarked training latency on local simulator (~400s).
+##  Abstract
+As High-Luminosity LHC (HL-LHC) data rates increase, classical trigger systems face bottlenecks. This project implements a **Hybrid Quantum-Classical Autoencoder (QAE)** to compress high-dimensional kinematic data ($p_T, \eta, \phi, m$) into a latent quantum state. The goal is to benchmark Quantum Machine Learning (QML) for **anomaly detection** (e.g., identifying rare decay channels like $H \to \mu\mu$ against QCD background).
+
+##  Methodology
+### 1. Data Simulation (Monte Carlo Approximation)
+To benchmark the architecture without dependency on massive ROOT files, we generate **synthetic kinematic data** mimicking Standard Model background distributions:
+- **Transverse Momentum ($p_T$):** Exponential decay (Soft QCD background).
+- **Pseudorapidity ($\eta$):** Gaussian distribution centered at $\eta=0$ (Central region).
+- **Azimuthal Angle ($\phi$):** Uniform distribution $[-\pi, \pi]$.
+- **Invariant Mass ($m$):** Gaussian peak.
+
+### 2. Quantum Architecture (PQC)
+We utilize a **Parametrized Quantum Circuit (PQC)** as the encoder:
+- **Encoding:** `ZZFeatureMap` (Maps classical data to Hilbert space via entanglement).
+- **Ansatz:** `RealAmplitudes` (Variational form with rotation gates).
+- **Compression:** The network trains to map normal background events to the ground state $|00\dots0\rangle$. Anomalies fail to compress, yielding high reconstruction error.
+
+##  Results & Performance
+- **Convergence:** The cost function (Fidelity Loss) converged within **100 epochs** using the Adam Optimizer.
+- **Latency:** Training latency on local simulator benchmarks at ~400s for 700 events.
+
+![Circuit Diagram](assets/circuit_diagram.png)
+*Figure 1: The Parametrized Quantum Circuit (Ansatz) used for compression.*
+
+![Loss Curve](assets/loss_curve.png)
+*Figure 2: Training convergence minimizing the reconstruction error.*
+
+##  Reproducibility (Docker)
+This environment is fully containerized to ensure reproducibility across CERN's infrastructure.
+
+```bash
+# Build the container
+docker build -t quantum-hep-agent .
+
+# Run the training script
+docker run quantum-hep-agent
 
 ## Technology Stack
-* **Quantum:** Qiskit, Qiskit Machine Learning
-* **Classical ML:** PyTorch, Scikit-learn
-* **Data:** Pandas, NumPy
+Quantum: Qiskit, Qiskit Machine Learning
 
-## Results
-<img width="931" height="461" alt="image" src="https://github.com/user-attachments/assets/da8c4353-70c2-4fb9-86d6-9204def61e59" />
+Classical ML: PyTorch, Scikit-learn
 
+Infrastructure: Docker, Jupyter
 
-*Figure 1: Training convergence showing the minimization of reconstruction error.*
+Project developed for the CERN Summer Student Programme application 2026.
