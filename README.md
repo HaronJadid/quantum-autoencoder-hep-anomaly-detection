@@ -36,12 +36,15 @@ We utilize a **Parametrized Quantum Circuit (PQC)** as the encoder:
 This environment is fully containerized to ensure reproducibility across CERN's infrastructure.
 
 ```bash
-# Build the container
+# 1.Build the container
 docker build -t quantum-hep-agent .
 
-# Run the training script
-docker run quantum-hep-agent
+# 2. Run the training script (and save results to local 'assets' folder)
+# Linux/Mac:
+docker run -v $(pwd)/assets:/app/assets quantum-hep-agent
 
+# Windows (PowerShell):
+docker run -v ${PWD}/assets:/app/assets quantum-hep-agent
 ```
 
 ## Technology Stack
