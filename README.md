@@ -54,4 +54,3 @@ Classical ML: PyTorch, Scikit-learn
 
 Infrastructure: Docker, Jupyter
 
-Project developed for the CERN Summer Student Programme application 2026.
