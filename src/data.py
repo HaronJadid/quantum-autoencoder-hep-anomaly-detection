@@ -172,6 +172,29 @@ def load_rnd(data_dir: str = "data") -> pd.DataFrame:
     return build_features(raw)
 
 
+def load_qqq(data_dir: str = "data") -> pd.DataFrame:
+    """The 3-prong signal (W' -> XY, X,Y -> qqq), as a generalisation test.
+
+    Same generator settings, masses and trigger as the 2-prong signal, but a
+    three-prong jet substructure. The file is pure signal: 100k events, the
+    same 14 raw columns, and NO label column (nothing to label).
+
+    Used only at evaluation time. No model is ever trained or selected on it,
+    so scoring it measures generalisation to a signal the models have not been
+    tuned against -- which is the situation a real signal-agnostic search is in.
+    """
+    path = download(QQQ_URL, os.path.join(data_dir, QQQ_NAME), QQQ_MD5)
+    raw = pd.read_hdf(path)
+    if not isinstance(raw, pd.DataFrame):
+        raise TypeError(f"expected a DataFrame from {path}, got {type(raw)}")
+    if "label" in raw.columns:
+        raise ValueError(
+            f"{QQQ_NAME} unexpectedly has a label column; it should be pure "
+            "signal. Refusing to guess at its meaning.")
+    print(f"[data] 3-prong generalisation signal: {raw.shape[0]:,} events")
+    return build_features(raw)
+
+
 @dataclass
 class Splits:
     """Background-only train/val, plus a mixed test set. All arrays are raw

@@ -35,8 +35,14 @@ def train_model(model, loss_fn, train: np.ndarray, val: np.ndarray, *,
     import time
 
     torch.manual_seed(seed)
-    xtr = torch.as_tensor(train, dtype=dtype)
-    xva = torch.as_tensor(val, dtype=dtype)
+    # Follow the model rather than taking a device argument: the classical
+    # baselines are so cheap (0.03 s per training run, against 12 s per epoch
+    # for a QAE) that moving them to an accelerator would cost more in
+    # transfers than it saves, so only the quantum models are ever built off
+    # the CPU and the data goes wherever the parameters already are.
+    device = next(model.parameters()).device
+    xtr = torch.as_tensor(train, dtype=dtype).to(device)
+    xva = torch.as_tensor(val, dtype=dtype).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     gen = torch.Generator().manual_seed(seed)
 

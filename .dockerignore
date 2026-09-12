@@ -1,0 +1,24 @@
+# The dockerfile COPYs specific paths, so BuildKit only transfers those and
+# the context is already small. This exists so it stays that way: a future
+# `COPY . .` would otherwise sweep in a 1.3 GB virtualenv and 76 MB of cached
+# LHCO data, both of which belong in mounted volumes rather than in a layer.
+.venv/
+data/
+.git/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Run outputs. results/reference/ IS copied (verify needs it) and is
+# re-included below; everything else under results/ is either regenerated in
+# the container or mounted from the host.
+results/*
+!results/reference/
+results/smoke/
+results/verify/
+results/verify5/
+results/parallel/
+results/superseded/
+
+*.zip
+*.npz

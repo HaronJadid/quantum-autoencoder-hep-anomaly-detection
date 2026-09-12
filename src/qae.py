@@ -21,14 +21,22 @@ equivalent to the SWAP-test fidelity against a fresh |0...0> reference, and
 costs n_trash + 1 fewer qubits. This is the standard simplification and is what
 Ngairangbam et al. use.
 
-Why PennyLane for training: Qiskit's gradients go through the parameter-shift
-rule, which needs 2 circuit evaluations per parameter per step. At 24
-parameters and O(10^5) training events that is ~10^6 circuit executions per
-epoch -- infeasible on a free Colab CPU. PennyLane's `default.qubit` with
-`diff_method="backprop"` differentiates through the statevector simulation
-directly, giving the same exact (noiseless, infinite-shot) gradients in
-seconds per epoch. `verify_against_qiskit` asserts the two implementations
-produce the same statevector, so the Qiskit circuit remains the specification.
+Why PennyLane for training: under the parameter-shift rule a gradient costs 2
+circuit evaluations per parameter per step, so at a few dozen parameters and
+O(10^5) training events that is ~10^6 circuit executions per epoch --
+infeasible on a free Colab CPU.
+
+Note this is a statement about parameter-shift, not about Qiskit. Qiskit also
+provides ReverseEstimatorGradient, an adjoint-style method that is exact and
+much cheaper on a simulator; staying inside Qiskit would have meant using it.
+Parameter-shift is the cost model quoted because it is the one that carries
+over to hardware, where adjoint differentiation is not available.
+
+PennyLane's `default.qubit` with `diff_method="backprop"` differentiates
+through the statevector simulation directly, giving the same exact (noiseless,
+infinite-shot) gradients in seconds per epoch. `verify_against_qiskit` asserts
+the two implementations produce the same statevector, so the Qiskit circuit
+remains the specification.
 """
 
 from __future__ import annotations
@@ -143,7 +151,7 @@ class QuantumAutoencoder(nn.Module):
 
     def __init__(self, n_qubits: int = 6, n_trash: int = 2, reps: int = 3,
                  seed: int = 0, init_scale: float = 0.1,
-                 feature_map: str = "ry"):
+                 feature_map: str = "ry", device=None):
         super().__init__()
         if not 0 < n_trash < n_qubits:
             raise ValueError("n_trash must be strictly between 0 and n_qubits")
@@ -158,18 +166,24 @@ class QuantumAutoencoder(nn.Module):
 
         # Small initialisation keeps the ansatz near identity at step 0, which
         # trains more stably than a uniform-random start at this circuit size.
+        # Drawn on the CPU and then moved, never drawn on the target device:
+        # CUDA's generator is a different stream from the CPU's, so seeding
+        # the device would give a different initialisation and the seed would
+        # no longer mean the same thing on both. This keeps `seed` producing
+        # one initialisation everywhere.
         g = torch.Generator().manual_seed(seed)
         self.weights = nn.Parameter(
-            init_scale * torch.randn(n_params(n_qubits, reps), generator=g,
-                                     dtype=torch.float64))
+            (init_scale * torch.randn(n_params(n_qubits, reps), generator=g,
+                                      dtype=torch.float64)).to(device))
 
         dev = qml.device("default.qubit", wires=n_qubits)
-        fm = FEATURE_MAPS[feature_map]
+        # Held as a buffer so .to(), .cuda() and state_dict() move it with the
+        # module instead of leaving a stale CPU tensor behind.
+        self.register_buffer("_zero", zero_state(n_qubits, device))
 
         @qml.qnode(dev, interface="torch", diff_method="backprop")
         def circuit(x, w):
-            fm(x, range(n_qubits))
-            real_amplitudes(w, range(n_qubits), reps)
+            qae_ops(x, w, n_qubits, reps, feature_map, self._zero)
             return qml.probs(wires=self.trash_wires)
 
         self._circuit = circuit
@@ -182,10 +196,42 @@ class QuantumAutoencoder(nn.Module):
     @torch.no_grad()
     def score(self, x: np.ndarray, batch_size: int = 8192) -> np.ndarray:
         out = []
+        device = self.weights.device
         for i in range(0, len(x), batch_size):
-            xb = torch.as_tensor(x[i:i + batch_size], dtype=torch.float64)
+            xb = torch.as_tensor(x[i:i + batch_size],
+                                 dtype=torch.float64).to(device)
             out.append(self.forward(xb).cpu().numpy())
         return np.concatenate(out)
+
+
+def zero_state(n_qubits: int, device=None) -> torch.Tensor:
+    """|0...0> as an explicit tensor on `device`.
+
+    default.qubit builds its own initial state with qml.math.asarray(like=
+    "torch"), which lands on the CPU wherever the parameters live; the first
+    parametrised gate then raises "Expected all tensors to be on the same
+    device". Preparing the state explicitly pulls the simulation onto the
+    device holding the weights, which is what makes GPU execution possible at
+    all. On the CPU it is a bit-exact no-op -- same amplitudes, same
+    gradients -- so there is one code path, not one per device.
+    """
+    z = torch.zeros(2 ** n_qubits, dtype=torch.complex128, device=device)
+    z[0] = 1.0
+    return z
+
+
+def qae_ops(x, w, n_qubits: int, reps: int, feature_map: str, prep) -> None:
+    """The circuit, as one op sequence.
+
+    Defined once and used by BOTH `QuantumAutoencoder` and
+    `verify_against_qiskit`, so the circuit checked against the Qiskit
+    specification is necessarily the circuit that gets trained. When the two
+    were written out separately, a change to one could leave the other
+    verifying a circuit nobody runs.
+    """
+    qml.StatePrep(prep, wires=range(n_qubits))
+    FEATURE_MAPS[feature_map](x, range(n_qubits))
+    real_amplitudes(w, range(n_qubits), reps)
 
 
 # --------------------------------------------------------------------------
@@ -207,12 +253,14 @@ def verify_against_qiskit(n_qubits: int = 6, reps: int = 3, n_trials: int = 5,
     from qiskit.quantum_info import Statevector
 
     dev = qml.device("default.qubit", wires=n_qubits)
-    pl_fm = FEATURE_MAPS[feature_map]
+
+    # Same op sequence as the trained model, StatePrep included, so this
+    # verifies the circuit that actually runs.
+    prep = zero_state(n_qubits)
 
     @qml.qnode(dev)
     def pl_state(x, w):
-        pl_fm(x, range(n_qubits))
-        real_amplitudes(w, range(n_qubits), reps)
+        qae_ops(x, w, n_qubits, reps, feature_map, prep)
         return qml.state()
 
     qc, fm, ans = build_qiskit_circuit(n_qubits, reps, feature_map)

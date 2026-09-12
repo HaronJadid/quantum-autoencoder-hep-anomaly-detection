@@ -1,0 +1,308 @@
+{
+  "guard": {
+    "n_qubits": 6,
+    "n_trash": 2,
+    "features": [
+      "mj1",
+      "dmj",
+      "tau21j1",
+      "tau21j2",
+      "tau32j1",
+      "tau32j2"
+    ],
+    "reps_candidates": [
+      1,
+      3,
+      5,
+      7,
+      9
+    ],
+    "lr_candidates": [
+      0.2,
+      0.1,
+      0.05,
+      0.01,
+      0.001
+    ],
+    "select_epochs": 25,
+    "select_n": 25000,
+    "batch_size": 4096,
+    "default_lr": 0.05,
+    "n_train": 100000,
+    "n_val": 20000,
+    "noise_floor": 0.01
+  },
+  "selection_seed": 0,
+  "verify": {
+    "zz_reps1": 1.6711069443220836e-16,
+    "zz_reps3": 1.7010907505015192e-16,
+    "zz_reps5": 2.237726045655905e-16,
+    "zz_reps7": 2.612012026770126e-16,
+    "zz_reps9": 2.7755575615628914e-16,
+    "ry_reps1": 2.7755575615628914e-16,
+    "ry_reps3": 1.942890293094024e-16,
+    "ry_reps5": 1.942890293094024e-16,
+    "ry_reps7": 2.220446049250313e-16,
+    "ry_reps9": 2.7755575615628914e-16
+  },
+  "encoding": {
+    "zz": {
+      "max_p_trash_zero": 0.34244781754355613,
+      "random_reference": 0.25,
+      "headroom": 0.09244781754355613,
+      "headroom_fraction": 0.1232637567247415,
+      "effective_dimension": 59.405113448495754,
+      "full_dimension": 64,
+      "latent_dimension": 16,
+      "top_eigenvalues": [
+        0.028648873565236883,
+        0.024408095434193835,
+        0.02385809749875118,
+        0.023417912793500768,
+        0.022700865147051264,
+        0.02217989483584408,
+        0.021559806270706573,
+        0.020783191742525776
+      ],
+      "compressible": false
+    },
+    "ry": {
+      "max_p_trash_zero": 0.8721268038191416,
+      "random_reference": 0.25,
+      "headroom": 0.6221268038191416,
+      "headroom_fraction": 0.8295024050921889,
+      "effective_dimension": 7.824211725112522,
+      "full_dimension": 64,
+      "latent_dimension": 16,
+      "top_eigenvalues": [
+        0.3074586600917488,
+        0.09855561719695252,
+        0.08113395687162066,
+        0.06878326049949364,
+        0.06297985536877554,
+        0.05812747208376622,
+        0.03348502110547408,
+        0.025348626367545923
+      ],
+      "compressible": true
+    }
+  },
+  "ansatz_reps": {
+    "zz": 7,
+    "ry": 7
+  },
+  "reps_selection": {
+    "zz": {
+      "scores": {
+        "1": 0.7032736460576826,
+        "3": 0.703187251953306,
+        "5": 0.7016433973606656,
+        "7": 0.7016411144435267,
+        "9": 0.697098366473479
+      },
+      "raw_argmin": 9,
+      "best_vs_second_gap": 0.0045427479700477225,
+      "tied_set": [
+        1,
+        3,
+        5,
+        7,
+        9
+      ],
+      "selected": 1,
+      "tie_break_fired": true,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 0.006175279584203608,
+      "hit_boundary": true,
+      "below_noise_floor": true,
+      "selected_at_grid_edge": true,
+      "used": false,
+      "pinned_to_ry": true,
+      "would_have_selected": 1
+    },
+    "ry": {
+      "scores": {
+        "1": 0.33140557182404357,
+        "3": 0.3137720909466531,
+        "5": 0.27983652065397996,
+        "7": 0.2444812747896169,
+        "9": 0.27740717737656967
+      },
+      "raw_argmin": 7,
+      "best_vs_second_gap": 0.03292590258695277,
+      "tied_set": [
+        7
+      ],
+      "selected": 7,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 0.08692429703442667,
+      "hit_boundary": false,
+      "below_noise_floor": false,
+      "selected_at_grid_edge": false,
+      "used": true
+    }
+  },
+  "lr_selected": {
+    "qae_ry": 0.05,
+    "qae_zz": 0.01,
+    "ae_matched": 0.1,
+    "ae_untied32": 0.05,
+    "ae_untied45": 0.05,
+    "ae_untied58": 0.05,
+    "ae_dense": 0.05
+  },
+  "lr_selection": {
+    "qae_ry": {
+      "scores": {
+        "0.2": 0.2439726612718375,
+        "0.1": 0.24413240673054812,
+        "0.05": 0.2444812747896171,
+        "0.01": 0.27519339384068786,
+        "0.001": 0.5449083497746541
+      },
+      "raw_argmin": 0.2,
+      "best_vs_second_gap": 0.00015974545871061396,
+      "tied_set": [
+        0.05,
+        0.1,
+        0.2
+      ],
+      "selected": 0.05,
+      "tie_break_fired": true,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 0.3009356885028166,
+      "hit_boundary": false
+    },
+    "qae_zz": {
+      "scores": {
+        "0.2": 0.6945345558717747,
+        "0.1": 0.7007548878423987,
+        "0.05": 0.7016411144435267,
+        "0.01": 0.7027112683815386,
+        "0.001": 0.7323639133721952
+      },
+      "raw_argmin": 0.2,
+      "best_vs_second_gap": 0.0062203319706239935,
+      "tied_set": [
+        0.01,
+        0.05,
+        0.1,
+        0.2
+      ],
+      "selected": 0.01,
+      "tie_break_fired": true,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 0.03782935750042049,
+      "hit_boundary": false
+    },
+    "ae_matched": {
+      "scores": {
+        "0.2": 0.08952437094485949,
+        "0.1": 0.09055288827192835,
+        "0.05": 0.10696456190207597,
+        "0.01": 0.22205177884565705,
+        "0.001": 0.5849141867231097
+      },
+      "raw_argmin": 0.2,
+      "best_vs_second_gap": 0.0010285173270688647,
+      "tied_set": [
+        0.1,
+        0.2
+      ],
+      "selected": 0.1,
+      "tie_break_fired": true,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 0.4953898157782502,
+      "hit_boundary": false
+    },
+    "ae_untied32": {
+      "scores": {
+        "0.2": 0.8226981120289176,
+        "0.1": 0.6090782495520188,
+        "0.05": 0.6112900642288707,
+        "0.01": 0.7013526480925584,
+        "0.001": 2.527386423734242
+      },
+      "raw_argmin": 0.1,
+      "best_vs_second_gap": 0.002211814676851831,
+      "tied_set": [
+        0.05,
+        0.1
+      ],
+      "selected": 0.05,
+      "tie_break_fired": true,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 1.918308174182223,
+      "hit_boundary": false
+    },
+    "ae_untied45": {
+      "scores": {
+        "0.2": 0.6110914148529053,
+        "0.1": 0.6089990426213818,
+        "0.05": 0.41828774322224366,
+        "0.01": 0.569918745699184,
+        "0.001": 2.061735675186567
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 0.15163100247694034,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 1.6434479319643236,
+      "hit_boundary": false
+    },
+    "ae_untied58": {
+      "scores": {
+        "0.2": 0.6188613730996044,
+        "0.1": 0.472149761646814,
+        "0.05": 0.4729450180619666,
+        "0.01": 0.4932045070268616,
+        "0.001": 1.1605669603773843
+      },
+      "raw_argmin": 0.1,
+      "best_vs_second_gap": 0.0007952564151526009,
+      "tied_set": [
+        0.05,
+        0.1
+      ],
+      "selected": 0.05,
+      "tie_break_fired": true,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 0.6884171987305703,
+      "hit_boundary": false
+    },
+    "ae_dense": {
+      "scores": {
+        "0.2": 0.8225601862775976,
+        "0.1": 0.4441808665396674,
+        "0.05": 0.19061790804813708,
+        "0.01": 0.23511735140214154,
+        "0.001": 0.7069728866536954
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 0.044499443354004464,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 0.6319422782294606,
+      "hit_boundary": false
+    }
+  },
+  "_provenance": "RECONSTRUCTED from results/metrics.json, not the original selection.json written during the run (that file stayed on the Colab VM). Every field is copied from what the run recorded, so the selection it pins is the selection the reported numbers were trained under. Its sha256 therefore differs from the original digest (d8eeee1c1afb17f8), and shards produced with it will not merge with shards from the original -- which is correct: they are different files."
+}

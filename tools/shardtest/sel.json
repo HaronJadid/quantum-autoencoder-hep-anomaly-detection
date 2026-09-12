@@ -1,0 +1,258 @@
+{
+  "guard": {
+    "n_qubits": 6,
+    "n_trash": 2,
+    "features": [
+      "mj1",
+      "dmj",
+      "tau21j1",
+      "tau21j2",
+      "tau32j1",
+      "tau32j2"
+    ],
+    "reps_candidates": [
+      1,
+      3
+    ],
+    "lr_candidates": [
+      0.05,
+      0.01
+    ],
+    "select_epochs": 5,
+    "select_n": 2000,
+    "batch_size": 4096,
+    "default_lr": 0.05,
+    "n_train": 4000,
+    "n_val": 1000,
+    "noise_floor": 0.01
+  },
+  "selection_seed": 0,
+  "verify": {
+    "zz_reps1": 1.4946834900704541e-16,
+    "zz_reps3": 1.5700924586837752e-16,
+    "ry_reps1": 2.220446049250313e-16,
+    "ry_reps3": 2.220446049250313e-16
+  },
+  "encoding": {
+    "zz": {
+      "max_p_trash_zero": 0.3498218148908361,
+      "random_reference": 0.25,
+      "headroom": 0.09982181489083608,
+      "headroom_fraction": 0.13309575318778144,
+      "effective_dimension": 58.84575694263171,
+      "full_dimension": 64,
+      "latent_dimension": 16,
+      "top_eigenvalues": [
+        0.028508550114864528,
+        0.02522999105738585,
+        0.02458692587185242,
+        0.0236065564096832,
+        0.022972227762654007,
+        0.022099454699872612,
+        0.021864889905788498,
+        0.021464843154931672
+      ],
+      "compressible": false
+    },
+    "ry": {
+      "max_p_trash_zero": 0.8718285069757256,
+      "random_reference": 0.25,
+      "headroom": 0.6218285069757256,
+      "headroom_fraction": 0.829104675967634,
+      "effective_dimension": 7.838656945164254,
+      "full_dimension": 64,
+      "latent_dimension": 16,
+      "top_eigenvalues": [
+        0.3071630967077861,
+        0.098060458682424,
+        0.08162126274041516,
+        0.06823713958941778,
+        0.06305452423046086,
+        0.05842754604130279,
+        0.03351520749645083,
+        0.025043725003993843
+      ],
+      "compressible": true
+    }
+  },
+  "ansatz_reps": {
+    "zz": 1,
+    "ry": 1
+  },
+  "reps_selection": {
+    "zz": {
+      "scores": {
+        "1": 0.7322710744882575,
+        "3": 0.7402697429049161
+      },
+      "raw_argmin": 1,
+      "best_vs_second_gap": 0.007998668416658639,
+      "tied_set": [
+        1,
+        3
+      ],
+      "selected": 1,
+      "tie_break_fired": false,
+      "within_noise_floor": true,
+      "noise_floor": 0.01,
+      "spread": 0.007998668416658639,
+      "hit_boundary": false,
+      "below_noise_floor": true,
+      "selected_at_grid_edge": true,
+      "used": false,
+      "pinned_to_ry": true,
+      "would_have_selected": 1
+    },
+    "ry": {
+      "scores": {
+        "1": 0.6156484562579776,
+        "3": 0.6340729488732766
+      },
+      "raw_argmin": 1,
+      "best_vs_second_gap": 0.018424492615298993,
+      "tied_set": [
+        1
+      ],
+      "selected": 1,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 0.018424492615298993,
+      "hit_boundary": false,
+      "below_noise_floor": false,
+      "selected_at_grid_edge": true,
+      "used": true
+    }
+  },
+  "lr_selected": {
+    "qae_ry": 0.05,
+    "qae_zz": 0.05,
+    "ae_matched": 0.05,
+    "ae_untied32": 0.05,
+    "ae_untied45": 0.05,
+    "ae_untied58": 0.05,
+    "ae_dense": 0.05
+  },
+  "lr_selection": {
+    "qae_ry": {
+      "scores": {
+        "0.05": 0.6156484562579776,
+        "0.01": 0.6978083313217482
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 0.08215987506377065,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 0.08215987506377065,
+      "hit_boundary": true
+    },
+    "qae_zz": {
+      "scores": {
+        "0.05": 0.7322710744882575,
+        "0.01": 0.7435153962938784
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 0.01124432180562096,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 0.01124432180562096,
+      "hit_boundary": true
+    },
+    "ae_matched": {
+      "scores": {
+        "0.05": 2.167304000789641,
+        "0.01": 2.757688078178014
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 0.5903840773883733,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 0.5903840773883733,
+      "hit_boundary": true
+    },
+    "ae_untied32": {
+      "scores": {
+        "0.05": 2.3703114737838713,
+        "0.01": 3.649959667563429
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 1.2796481937795576,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 1.2796481937795576,
+      "hit_boundary": true
+    },
+    "ae_untied45": {
+      "scores": {
+        "0.05": 1.6700324661507293,
+        "0.01": 2.990898053020799
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 1.3208655868700696,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 1.3208655868700696,
+      "hit_boundary": true
+    },
+    "ae_untied58": {
+      "scores": {
+        "0.05": 1.0080471479700843,
+        "0.01": 2.360374904997695
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 1.3523277570276109,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 1.3523277570276109,
+      "hit_boundary": true
+    },
+    "ae_dense": {
+      "scores": {
+        "0.05": 0.8534811826358525,
+        "0.01": 2.4364802584589325
+      },
+      "raw_argmin": 0.05,
+      "best_vs_second_gap": 1.5829990758230799,
+      "tied_set": [
+        0.05
+      ],
+      "selected": 0.05,
+      "tie_break_fired": false,
+      "within_noise_floor": false,
+      "noise_floor": 0.01,
+      "spread": 1.5829990758230799,
+      "hit_boundary": true
+    }
+  },
+  "digest": null
+}

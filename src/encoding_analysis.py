@@ -18,8 +18,14 @@ amount of training, and it depends only on the feature map and the data.
 
 Reference value: for a maximally mixed rho on n qubits the bound is k/2^n,
 which is exactly the random-guess probability. An encoding that puts rho near
-maximally mixed is therefore incompressible in principle -- the autoencoder
-cannot work, and no amount of tuning changes that.
+maximally mixed is therefore incompressible in principle, and no amount of
+tuning changes that.
+
+Scope: this bounds COMPRESSION, not anomaly-detection performance. A model
+whose trash register cannot be driven to |0..0> can still produce a score that
+separates signal from background for other reasons, and empirically it does.
+The bound says the compression is not what is doing the work; it does not say
+the model scores at chance.
 
 Why this matters here: ZZFeatureMap starts with a Hadamard on every qubit and
 then applies only phase gates, so every amplitude has modulus 2^(-n/2) for

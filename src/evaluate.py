@@ -118,7 +118,17 @@ def paired_comparison(runs_a: list, runs_b: list, metric: str = "auc") -> dict:
     from scipy import stats
 
     def get(run):
-        """`metric` is either a top-level key ("auc") or "rejection@<eps_s>"."""
+        """Metric key: "auc", "rejection@<eps_s>", or "log_rejection@<eps_s>".
+
+        1/eps_B is a ratio and is strongly right-skewed across seeds, which
+        violates the normality a t-test assumes and lets a single large seed
+        dominate the mean. Testing log(1/eps_B) instead makes the paired
+        difference a log ratio, which is far closer to symmetric; exponentiating
+        the mean difference gives an interpretable "x times better" factor.
+        """
+        if metric.startswith("log_rejection@"):
+            v = run["rejection"][f"eps_s={metric.split('@')[1]}"]["rejection"]
+            return np.log(v)
         if metric.startswith("rejection@"):
             return run["rejection"][f"eps_s={metric.split('@')[1]}"]["rejection"]
         return run[metric]
@@ -146,6 +156,25 @@ def paired_comparison(runs_a: list, runs_b: list, metric: str = "auc") -> dict:
         "n_seeds": n, "per_seed_difference": d.tolist(),
         "significant_at_0.05": bool(p == p and p < 0.05),
     }
+
+
+def auc_test_se(auc: float, n_signal: int, n_background: int) -> float:
+    """Statistical uncertainty on a single AUC from finite test-set size.
+
+    Hanley & McNeil (1982), Radiology 143, 29. This is the uncertainty from
+    having finitely many test events, and is entirely separate from the
+    across-seed spread, which measures training-run variability. Both matter
+    and they are not interchangeable: with ~10^6 test events this term is tiny,
+    so essentially all of the observed seed-to-seed spread is training
+    variability rather than test-set noise.
+    """
+    a = float(auc)
+    q1 = a / (2.0 - a)
+    q2 = 2.0 * a * a / (1.0 + a)
+    var = (a * (1 - a)
+           + (n_signal - 1) * (q1 - a * a)
+           + (n_background - 1) * (q2 - a * a)) / (n_signal * n_background)
+    return float(np.sqrt(max(var, 0.0)))
 
 
 def aggregate(runs: list) -> dict:

@@ -1,0 +1,634 @@
+{
+  "what": "CPU reference AUCs from the interrupted 15-seed run of 2026-09-10, at the final round-5 configuration (zz depth pinned to ry). Parsed from that run's stdout, which is all that survives: the run was stopped at seed 13 and never wrote metrics.json.",
+  "why": "Training is chaotic -- tiny floating-point differences amplify through hundreds of Adam steps and can move which epoch early stopping picks. These numbers let a later GPU run be compared against CPU at the SAME configuration and seeds, so the size of any hardware sensitivity is measured rather than assumed.",
+  "precision": "4 decimal places for AUC, 1 for rejection: stdout precision, not full precision. Differences below 5e-5 in AUC are not resolvable from this file.",
+  "hardware": "AMD Ryzen 5 5600H, torch 2.14.0+cpu, 6 threads (torch default)",
+  "seeds_completed": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "per_seed": {
+    "0": {
+      "qae_ry": {
+        "auc": 0.6047,
+        "rejection_eps_s_0.3": 5.3,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "qae_zz": {
+        "auc": 0.558,
+        "rejection_eps_s_0.3": 4.2,
+        "spearman_score_vs_mjj": 0.003
+      },
+      "ae_matched": {
+        "auc": 0.4521,
+        "rejection_eps_s_0.3": 2.4,
+        "spearman_score_vs_mjj": 0.038
+      },
+      "ae_untied32": {
+        "auc": 0.5237,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.026
+      },
+      "ae_untied45": {
+        "auc": 0.5419,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "ae_untied58": {
+        "auc": 0.5632,
+        "rejection_eps_s_0.3": 3.9,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "ae_dense": {
+        "auc": 0.5749,
+        "rejection_eps_s_0.3": 4.2,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "pca": {
+        "auc": 0.5651,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "mj1_only": {
+        "auc": 0.5812,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.084
+      }
+    },
+    "1": {
+      "qae_ry": {
+        "auc": 0.613,
+        "rejection_eps_s_0.3": 5.5,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "qae_zz": {
+        "auc": 0.4975,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.006
+      },
+      "ae_matched": {
+        "auc": 0.5887,
+        "rejection_eps_s_0.3": 3.8,
+        "spearman_score_vs_mjj": 0.026
+      },
+      "ae_untied32": {
+        "auc": 0.5252,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied45": {
+        "auc": 0.532,
+        "rejection_eps_s_0.3": 3.1,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5712,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "ae_dense": {
+        "auc": 0.451,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.017
+      },
+      "pca": {
+        "auc": 0.567,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.5814,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "2": {
+      "qae_ry": {
+        "auc": 0.5765,
+        "rejection_eps_s_0.3": 4.8,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "qae_zz": {
+        "auc": 0.5306,
+        "rejection_eps_s_0.3": 3.7,
+        "spearman_score_vs_mjj": 0.013
+      },
+      "ae_matched": {
+        "auc": 0.6167,
+        "rejection_eps_s_0.3": 4.5,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied32": {
+        "auc": 0.5251,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied45": {
+        "auc": 0.5352,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5735,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "ae_dense": {
+        "auc": 0.4133,
+        "rejection_eps_s_0.3": 2.3,
+        "spearman_score_vs_mjj": 0.01
+      },
+      "pca": {
+        "auc": 0.5671,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.581,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.084
+      }
+    },
+    "3": {
+      "qae_ry": {
+        "auc": 0.6097,
+        "rejection_eps_s_0.3": 5.4,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "qae_zz": {
+        "auc": 0.5607,
+        "rejection_eps_s_0.3": 4.4,
+        "spearman_score_vs_mjj": 0.0
+      },
+      "ae_matched": {
+        "auc": 0.6374,
+        "rejection_eps_s_0.3": 5.0,
+        "spearman_score_vs_mjj": 0.021
+      },
+      "ae_untied32": {
+        "auc": 0.5344,
+        "rejection_eps_s_0.3": 3.4,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied45": {
+        "auc": 0.5439,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5725,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "ae_dense": {
+        "auc": 0.5489,
+        "rejection_eps_s_0.3": 5.1,
+        "spearman_score_vs_mjj": 0.015
+      },
+      "pca": {
+        "auc": 0.5748,
+        "rejection_eps_s_0.3": 4.2,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.5814,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.084
+      }
+    },
+    "4": {
+      "qae_ry": {
+        "auc": 0.6232,
+        "rejection_eps_s_0.3": 5.8,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "qae_zz": {
+        "auc": 0.5634,
+        "rejection_eps_s_0.3": 4.2,
+        "spearman_score_vs_mjj": 0.003
+      },
+      "ae_matched": {
+        "auc": 0.5796,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.026
+      },
+      "ae_untied32": {
+        "auc": 0.5233,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied45": {
+        "auc": 0.5466,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5665,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "ae_dense": {
+        "auc": 0.6961,
+        "rejection_eps_s_0.3": 16.0,
+        "spearman_score_vs_mjj": 0.011
+      },
+      "pca": {
+        "auc": 0.5651,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.581,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.084
+      }
+    },
+    "5": {
+      "qae_ry": {
+        "auc": 0.5772,
+        "rejection_eps_s_0.3": 4.5,
+        "spearman_score_vs_mjj": 0.031
+      },
+      "qae_zz": {
+        "auc": 0.5535,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.002
+      },
+      "ae_matched": {
+        "auc": 0.6049,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.02
+      },
+      "ae_untied32": {
+        "auc": 0.5283,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied45": {
+        "auc": 0.5444,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "ae_untied58": {
+        "auc": 0.5648,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.031
+      },
+      "ae_dense": {
+        "auc": 0.4487,
+        "rejection_eps_s_0.3": 2.5,
+        "spearman_score_vs_mjj": 0.013
+      },
+      "pca": {
+        "auc": 0.5671,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.03
+      },
+      "mj1_only": {
+        "auc": 0.5814,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "6": {
+      "qae_ry": {
+        "auc": 0.5841,
+        "rejection_eps_s_0.3": 4.9,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "qae_zz": {
+        "auc": 0.5535,
+        "rejection_eps_s_0.3": 4.3,
+        "spearman_score_vs_mjj": 0.003
+      },
+      "ae_matched": {
+        "auc": 0.6279,
+        "rejection_eps_s_0.3": 4.4,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied32": {
+        "auc": 0.5254,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied45": {
+        "auc": 0.5367,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5582,
+        "rejection_eps_s_0.3": 3.9,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "ae_dense": {
+        "auc": 0.7098,
+        "rejection_eps_s_0.3": 11.4,
+        "spearman_score_vs_mjj": 0.016
+      },
+      "pca": {
+        "auc": 0.5612,
+        "rejection_eps_s_0.3": 3.9,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.581,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.082
+      }
+    },
+    "7": {
+      "qae_ry": {
+        "auc": 0.507,
+        "rejection_eps_s_0.3": 3.8,
+        "spearman_score_vs_mjj": 0.021
+      },
+      "qae_zz": {
+        "auc": 0.525,
+        "rejection_eps_s_0.3": 3.6,
+        "spearman_score_vs_mjj": 0.012
+      },
+      "ae_matched": {
+        "auc": 0.5336,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.027
+      },
+      "ae_untied32": {
+        "auc": 0.5262,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied45": {
+        "auc": 0.5338,
+        "rejection_eps_s_0.3": 3.1,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "ae_untied58": {
+        "auc": 0.5641,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "ae_dense": {
+        "auc": 0.5038,
+        "rejection_eps_s_0.3": 3.5,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "pca": {
+        "auc": 0.5622,
+        "rejection_eps_s_0.3": 3.9,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.5813,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "8": {
+      "qae_ry": {
+        "auc": 0.5714,
+        "rejection_eps_s_0.3": 4.6,
+        "spearman_score_vs_mjj": 0.033
+      },
+      "qae_zz": {
+        "auc": 0.5532,
+        "rejection_eps_s_0.3": 4.2,
+        "spearman_score_vs_mjj": -0.001
+      },
+      "ae_matched": {
+        "auc": 0.6464,
+        "rejection_eps_s_0.3": 5.2,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "ae_untied32": {
+        "auc": 0.5309,
+        "rejection_eps_s_0.3": 3.4,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied45": {
+        "auc": 0.538,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5658,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "ae_dense": {
+        "auc": 0.5139,
+        "rejection_eps_s_0.3": 3.6,
+        "spearman_score_vs_mjj": 0.021
+      },
+      "pca": {
+        "auc": 0.5647,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.5814,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "9": {
+      "qae_ry": {
+        "auc": 0.6737,
+        "rejection_eps_s_0.3": 7.0,
+        "spearman_score_vs_mjj": 0.03
+      },
+      "qae_zz": {
+        "auc": 0.5595,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.001
+      },
+      "ae_matched": {
+        "auc": 0.6264,
+        "rejection_eps_s_0.3": 4.6,
+        "spearman_score_vs_mjj": 0.015
+      },
+      "ae_untied32": {
+        "auc": 0.5248,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied45": {
+        "auc": 0.5355,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "ae_untied58": {
+        "auc": 0.5649,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "ae_dense": {
+        "auc": 0.496,
+        "rejection_eps_s_0.3": 3.1,
+        "spearman_score_vs_mjj": 0.026
+      },
+      "pca": {
+        "auc": 0.5652,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "mj1_only": {
+        "auc": 0.5814,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "10": {
+      "qae_ry": {
+        "auc": 0.607,
+        "rejection_eps_s_0.3": 5.3,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "qae_zz": {
+        "auc": 0.5549,
+        "rejection_eps_s_0.3": 4.3,
+        "spearman_score_vs_mjj": 0.002
+      },
+      "ae_matched": {
+        "auc": 0.6673,
+        "rejection_eps_s_0.3": 5.9,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "ae_untied32": {
+        "auc": 0.522,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied45": {
+        "auc": 0.5419,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.021
+      },
+      "ae_untied58": {
+        "auc": 0.5705,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "ae_dense": {
+        "auc": 0.4882,
+        "rejection_eps_s_0.3": 2.9,
+        "spearman_score_vs_mjj": 0.016
+      },
+      "pca": {
+        "auc": 0.5672,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.5812,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "11": {
+      "qae_ry": {
+        "auc": 0.6116,
+        "rejection_eps_s_0.3": 5.5,
+        "spearman_score_vs_mjj": 0.025
+      },
+      "qae_zz": {
+        "auc": 0.5573,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.002
+      },
+      "ae_matched": {
+        "auc": 0.5551,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.03
+      },
+      "ae_untied32": {
+        "auc": 0.5252,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied45": {
+        "auc": 0.5403,
+        "rejection_eps_s_0.3": 3.2,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5692,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "ae_dense": {
+        "auc": 0.522,
+        "rejection_eps_s_0.3": 3.0,
+        "spearman_score_vs_mjj": 0.006
+      },
+      "pca": {
+        "auc": 0.5655,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.029
+      },
+      "mj1_only": {
+        "auc": 0.5814,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.083
+      }
+    },
+    "12": {
+      "qae_ry": {
+        "auc": 0.6246,
+        "rejection_eps_s_0.3": 5.8,
+        "spearman_score_vs_mjj": 0.023
+      },
+      "qae_zz": {
+        "auc": 0.5514,
+        "rejection_eps_s_0.3": 4.2,
+        "spearman_score_vs_mjj": 0.002
+      },
+      "ae_matched": {
+        "auc": 0.6218,
+        "rejection_eps_s_0.3": 4.6,
+        "spearman_score_vs_mjj": 0.018
+      },
+      "ae_untied32": {
+        "auc": 0.527,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.024
+      },
+      "ae_untied45": {
+        "auc": 0.5446,
+        "rejection_eps_s_0.3": 3.3,
+        "spearman_score_vs_mjj": 0.022
+      },
+      "ae_untied58": {
+        "auc": 0.5673,
+        "rejection_eps_s_0.3": 4.1,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "ae_dense": {
+        "auc": 0.5202,
+        "rejection_eps_s_0.3": 3.6,
+        "spearman_score_vs_mjj": 0.017
+      },
+      "pca": {
+        "auc": 0.5672,
+        "rejection_eps_s_0.3": 4.0,
+        "spearman_score_vs_mjj": 0.028
+      },
+      "mj1_only": {
+        "auc": 0.5812,
+        "rejection_eps_s_0.3": 2.6,
+        "spearman_score_vs_mjj": 0.084
+      }
+    }
+  }
+}
