@@ -22,13 +22,17 @@ Completed locally:
 - All-model two-topology figure now displays sample-SD error bars on shared axes.
 - Selection budgets are quantified as maximum event exposures, not compute.
 - Process notes are under `docs/`; old results are under `results/legacy-v1/`.
+- Release commit `d2f9199` was pushed to GitHub branch `hardening`.
+- A new clone of that GitHub branch passed all 20 regression tests, the
+  generated-report check and the provenance audit, including original-byte
+  source hashes. This used the existing development Python environment, not
+  a freshly installed environment.
 
 Before announcing the GitHub release:
 
-- Review and commit the complete intended diff, including the earlier uncommitted
-  protocol work. No commit or push was performed as part of this local pass.
-- Publish the reviewed changes to the repository. The Colab clone fallback
-  cannot fetch these local-only changes until then.
+- Merge the reviewed `hardening` branch into default branch `main`. Until then,
+  repository visitors and the notebook's default clone fallback still see the
+  older main-branch version. The release is available explicitly on `hardening`.
 - Optional stronger archival release: publish original score/weight bundles
   under a stable release or DOI. They currently remain local, not in Git.
 
