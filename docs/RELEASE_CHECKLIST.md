@@ -28,11 +28,11 @@ Completed locally:
   source hashes. This used the existing development Python environment, not
   a freshly installed environment.
 
-Before announcing the GitHub release:
+Publication status:
 
-- Merge the reviewed `hardening` branch into default branch `main`. Until then,
-  repository visitors and the notebook's default clone fallback still see the
-  older main-branch version. The release is available explicitly on `hardening`.
+- The verified `hardening` release was fast-forwarded into default branch
+  `main` and pushed to GitHub. Repository visitors and the notebook's default
+  clone fallback now receive the audited version. No history was rewritten.
 - Optional stronger archival release: publish original score/weight bundles
   under a stable release or DOI. They currently remain local, not in Git.
 
