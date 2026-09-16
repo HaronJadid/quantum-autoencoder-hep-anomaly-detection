@@ -1,4 +1,4 @@
-"""Generate the README results table from results/metrics.json.
+"""Generate the detailed report from results/final-v2/metrics.json.
 
 The table is generated, never typed. Numbers in the README therefore cannot
 drift from the numbers actually produced by a run.
@@ -57,6 +57,8 @@ def _pm(d, fmt="{:.4f}", n_expected=None):
     """
     if d["n"] == 0:
         return "no finite value"
+    if d["n"] == 1:
+        return f"{fmt.format(d['mean'])} *(one seed; s.d. not estimable)*"
     body = f"{fmt.format(d['mean'])} ± {fmt.format(d['std'])}"
     if n_expected is not None and d["n"] < n_expected:
         body += f" *({d['n']}/{n_expected} seeds)*"
@@ -80,6 +82,16 @@ def results_table(res: dict) -> str:
             f"{_pm(s[key]['rejection[eps_s=0.3]'], '{:.1f}', n_expected=len(n))} | "
             f"{s[key]['spearman_score_vs_mjj']['mean']:+.3f} |")
     out.append("")
+    if len(n) == 1:
+        out.append(f"Single-seed reproduction (seed {n[0]}). Across-seed "
+                   "variability and paired significance tests are not estimable.")
+        return "\n".join(out)
+    if res['config'].get('split_policy') == 'fixed':
+        out.append(f"Mean ± sample s.d. over {len(n)} training seeds on one fixed "
+                   "train/validation/test split. Seeds vary initialisation and batch order; "
+                   "PCA and the mass cut are deterministic controls. This spread is "
+                   "conditional on the fixed dataset and selected configuration.")
+        return "\n".join(out)
     out.append(f"Mean ± sample s.d. over {len(n)} seed{'s' if len(n) != 1 else ''} "
                f"({', '.join(map(str, n))}). Each seed re-initialises every "
                "model and re-draws the split, so this spread is training-run "
@@ -115,7 +127,7 @@ END = "<!-- END GENERATED RESULTS -->"
 
 COMPARISONS = [
     ("qae_ry", "mj1_only", "QAE vs. a plain cut on $m_{J_1}$"),
-    ("qae_ry", "qae_zz", "QAE vs. the provably-incompressible encoding"),
+    ("qae_ry", "qae_zz", "QAE (RY) vs. ZZFeatureMap"),
     ("qae_ry", "ae_matched", "QAE vs. classical AE at equal parameters"),
     ("qae_ry", "ae_untied32", "QAE vs. untied classical AE, 32 par."),
     ("qae_ry", "ae_untied45", "QAE vs. untied classical AE, 45 par."),
@@ -127,14 +139,14 @@ COMPARISONS = [
 
 REJECTION_COMPARISONS = [
     ("qae_ry", "mj1_only", "QAE vs. a plain cut on $m_{J_1}$"),
-    ("qae_zz", "mj1_only", "**incompressible** encoding vs. $m_{J_1}$ cut"),
+    ("qae_zz", "mj1_only", "ZZFeatureMap vs. $m_{J_1}$ cut"),
     ("ae_matched", "mj1_only", "classical AE (matched) vs. $m_{J_1}$ cut"),
     ("pca", "mj1_only", "PCA vs. $m_{J_1}$ cut"),
     ("qae_ry", "ae_matched", "QAE vs. classical AE at equal parameters"),
     ("qae_ry", "ae_untied32", "QAE vs. untied classical AE, 32 par."),
     ("qae_ry", "ae_untied45", "QAE vs. untied classical AE, 45 par."),
     ("qae_ry", "ae_untied58", "QAE vs. untied classical AE, 58 par."),
-    ("qae_ry", "qae_zz", "QAE vs. the incompressible encoding"),
+    ("qae_ry", "qae_zz", "QAE (RY) vs. ZZFeatureMap"),
 ]
 
 
@@ -158,6 +170,15 @@ RENDER_SKIP_LIST = {
                                # config line already quotes elapsed wall time,
                                # and total CPU across workers is not a result
 }
+
+
+def ablation_was_skipped(value) -> bool:
+    """Recognise the explicit empty diagnostic written by --no-ablation."""
+    return (isinstance(value, dict)
+            and value.get("n_seeds") == 0
+            and "results" in value
+            and (value["results"] is None or value["results"] == {})
+            and set(value) <= {"n_seeds", "description", "results"})
 
 
 def check_coverage(res: dict, bundle: dict) -> None:
@@ -188,7 +209,8 @@ def check_coverage(res: dict, bundle: dict) -> None:
         rendered = {
             "generalisation_qqq": has_qqq,
             "diagnostic_ae_dense_ablation":
-                bool((value or {}).get("results")) if isinstance(value, dict) else False,
+                (bool(value.get("results")) or ablation_was_skipped(value))
+                if isinstance(value, dict) else False,
         }.get(key)
         if rendered is None:
             unrendered.append(key)
@@ -240,6 +262,14 @@ def _rows(collected, alpha, fmt, ratio=False):
         if r is None:
             rows.append(f"| {label} | not testable (infinite rejection) | | | |")
             continue
+        if r["n_seeds"] < 2:
+            rows.append(f"| {label} | not estimable with one seed | — | — | n/a |")
+            continue
+        if r.get("degenerate"):
+            value = (f"x{np.exp(r['mean_difference']):.2f}" if ratio
+                     else fmt.format(r['mean_difference']))
+            rows.append(f"| {label} | {value} (constant across seeds) | — | — | not testable |")
+            continue
         survives = r["p_value"] == r["p_value"] and r["p_value"] < alpha
         mark = "**yes**" if survives else "no"
         if ratio:
@@ -250,7 +280,7 @@ def _rows(collected, alpha, fmt, ratio=False):
             diff = (f"{fmt.format(r['mean_difference'])} ± "
                     f"{fmt.format(r['sem']).lstrip('+')}")
         rows.append(f"| {label} | {diff} | {r['t']:.2f} | "
-                    f"{r['p_value']:.3f} | {mark} |")
+                    f"{r['p_value']:.3g} | {mark} |")
     return "\n".join(rows)
 
 
@@ -279,19 +309,24 @@ def comparison_table(res: dict, bundle: dict) -> str:
 
     They disagree, and that disagreement is the main result, so both are shown.
     """
+    if len(res['config']['seeds']) < 2:
+        return ("Single-seed reproduction: no paired significance tests are "
+                "performed. Across-seed uncertainty is not estimable with one seed.")
     auc_c, rej_c = bundle["auc"], bundle["rej"]
     n_tests, alpha = bundle["n_tests"], bundle["alpha"]
     n_qqq = len(bundle["qqq_auc"]) + len(bundle["qqq_rej"])
 
     return "\n".join([
-        f"**{n_tests} paired tests are performed** across this section and the "
+        f"**{n_tests} planned paired comparisons** across this section and the "
         f"generalisation section (2-prong AUC: {len(auc_c)}, 2-prong "
         f"rejection: {len(rej_c)}, 3-prong: {n_qqq}). Reporting them at α=0.05 "
-        f"each would give a {1 - 0.95 ** n_tests:.0%} chance of at least one "
-        "false positive under the null. The Bonferroni-corrected threshold is "
+        "each increases the family-wise false-positive risk. The tests share "
+        "models and events, so the independent-test formula does not give "
+        "their actual joint error probability. The Bonferroni-corrected threshold is "
         f"therefore **α = 0.05/{n_tests} = {alpha:.5f}**, applied identically "
         "to every table below including the 3-prong one. Uncorrected p is "
-        "shown so the raw evidence is visible.",
+        "shown so the raw evidence is visible. Constant paired differences are "
+        "not tested; retaining their slots in the correction is conservative.",
         "",
         "*ROC-AUC*", "",
         _rows(auc_c, alpha, "{:+.4f}"),
@@ -300,9 +335,9 @@ def comparison_table(res: dict, bundle: dict) -> str:
         _rows(rej_c, alpha, "{:+.2f}", ratio=True),
         "",
         "The rejection tests are run on **log(1/ε_B)**, not 1/ε_B. The "
-        "rejection is a ratio and is strongly right-skewed across seeds, so a "
-        "t-test on the raw value violates its normality assumption and lets one "
-        "large seed dominate. Differences of logs are near-symmetric; the "
+        "log transform expresses paired differences as log ratios and reduces "
+        "the influence of large rejection values. It does not guarantee "
+        "normal paired differences at this sample size. The "
         "column shows the exponentiated mean difference, i.e. a multiplicative "
         "factor (x1.00 = no difference), with ±1 s.e. exponentiated as the "
         "bracket.",
@@ -318,6 +353,15 @@ def _caption(res: dict) -> str:
     s = res["summary"]
     cfg = res["config"]
     n_seeds = len(cfg["seeds"])
+    if cfg.get('split_policy') == 'fixed':
+        return (f"Paired tests over {n_seeds} training seeds, conditional on one "
+                "fixed benchmark partition and the frozen selection. All models use "
+                "the same training, validation and test events in every run. Test "
+                "background is excluded from training and hyperparameter selection "
+                "throughout. The spread measures initialisation and batch-order "
+                "variability, not independent-dataset uncertainty or platform variability. "
+                "These exploratory tests do not establish quantum advantage; repeated "
+                "development on this benchmark is not corrected by Bonferroni.")
     any_run = next(iter(res["per_seed"].values()))[0]
     n_sig, n_bkg = any_run["n_signal"], any_run["n_background"]
     # Test-set statistical uncertainty on a single AUC, computed (not assumed)
@@ -333,9 +377,8 @@ def _caption(res: dict) -> str:
 
     return (
         f"Two-sided paired t-tests across {n_seeds} seeds. Within a seed every "
-        "model sees exactly the same events, so pairing removes the "
-        "split-to-split component and is more sensitive than comparing "
-        "independent mean ± s.d. summaries.\n\n"
+        "model sees exactly the same events. Pairing accounts for shared "
+        "variation but does not eliminate model-dependent responses to a split.\n\n"
         "**What the quoted ± measures.** It is the spread of the whole training "
         "run across seeds — weight initialisation plus which background events "
         "landed in the train/validation/test split. It is *not* a test-set "
@@ -343,7 +386,9 @@ def _caption(res: dict) -> str:
         f"experiments**: each seed's test set contains {n_bkg:,} of the same "
         f"{total_bkg:,} background events ({overlap:.0%} of the pool) and all "
         f"{n_sig:,} signal events, so the test sets overlap heavily and the "
-        "quoted spread understates what independent replication would show.\n\n"
+        "quoted spread does not measure uncertainty across independently "
+        "generated datasets. These tests describe run variability conditional "
+        "on this benchmark and protocol.\n\n"
         "**Test-set uncertainty, separately.** At these sample sizes "
         f"({n_sig:,} signal, {n_bkg:,} background) the Hanley–McNeil standard "
         f"error on a single AUC is {se_txt}, far smaller than "
@@ -461,13 +506,13 @@ def generalisation_table(res: dict, bundle: dict) -> str:
             continue
         a2, a3 = s[key]["auc"], gs[key]["auc"]
         rows.append(f"| {label_for(key, label, res)} | "
-                    f"{a2['mean']:.4f} ± {a2['std']:.4f} | "
-                    f"{a3['mean']:.4f} ± {a3['std']:.4f} | "
+                    f"{_pm(a2)} | "
+                    f"{_pm(a3)} | "
                     f"{a3['mean'] - a2['mean']:+.4f} |")
     rows.append("")
     alpha = bundle["alpha"]
     qa, qr = bundle["qqq_auc"], bundle["qqq_rej"]
-    if qa or qr:
+    if len(res['config']['seeds']) > 1 and (qa or qr):
         rows.append("*Paired tests on the 3-prong signal — same machinery, same "
                     "corrected threshold as the 2-prong tables*")
         rows.append("")
@@ -500,7 +545,10 @@ def ablation_table(res: dict) -> str:
     Folded behind a <details> block because it is an attribution check on one
     model, not a result about anomaly detection, and should not read as one.
     """
-    d = (res.get("diagnostic_ae_dense_ablation") or {}).get("results")
+    diagnostic = res.get("diagnostic_ae_dense_ablation")
+    if ablation_was_skipped(diagnostic):
+        return "*The separate ae_dense ablation was skipped (0 diagnostic seeds).*"
+    d = (diagnostic or {}).get("results")
     if not d:
         return ""
     rows = ["<details>",
@@ -530,7 +578,7 @@ def render(res: dict) -> str:
     """The whole generated block, as it appears in the README."""
     bundle = collect_all(res)
     check_coverage(res, bundle)
-    parts = ["<!-- generated by `python -m src.report --write-readme`; "
+    parts = ["<!-- generated by `python -m src.report`; "
              "do not edit by hand -->", "", results_table(res), "",
              "**Are any of these differences real?**", "",
              comparison_table(res, bundle), ""]
@@ -579,8 +627,22 @@ def config_line(res: dict) -> str:
         f"ansatz reps {cfg['ansatz_reps']}, "
         f"{cfg['n_train']:,} background training events, "
         f"{cfg['epochs']} max epochs (patience {cfg.get('patience', 'n/a')}). "
-        f"{cfg['simulation']}. Wall time {res['wall_seconds']:.0f} s."
+        f"{cfg['simulation']}. Recorded worker wall time "
+        f"{res['wall_seconds']:.0f} s (longest worker for sharded runs; "
+        "not end-to-end runtime)."
     ]
+    if cfg.get('protocol') == 'final-v2':
+        lines.append("Protocol final-v2: event-weighted validation; fixed partition "
+                     f"seed {cfg['split_seed']}. Classical learning-rate candidates "
+                     "use the full training sample and epoch budget over three "
+                     "initialisation seeds; quantum selection retains the recorded "
+                     "reduced budget. This computational asymmetry is explicit. "
+                     "The 1e-9 tie tolerance is numerical, not an estimated noise floor.")
+    zz_scan = (cfg.get('reps_selection') or {}).get('zz', {})
+    if zz_scan.get('pinned_to_ry'):
+        lines.append(f"ZZ depth is fixed to RY's depth ({cfg['ansatz_reps']['zz']}). "
+                     f"Its unused diagnostic scan would select {zz_scan['selected']}; "
+                     "that diagnostic choice is not the depth trained.")
 
     lr = cfg.get("lr_selected")
     if lr:
@@ -601,14 +663,14 @@ def config_line(res: dict) -> str:
             f"**The unconstrained depth argmin sat at the top of the candidate "
             f"grid {cfg['reps_candidates']} for "
             f"{', '.join('`'+h+'`' for h in hit)}.** The grid ran out before the "
-            "optimum did, so a deeper ansatz might score lower on the "
-            "objective. (Where a tie-break also fired, the depth actually used "
-            "is the shallowest indistinguishable one, not this argmin.)")
+            "minimum was resolved. A deeper ansatz might score lower on the "
+            "objective. This describes the scan; any explicit depth pin above "
+            "takes precedence for the trained model.")
     # Selections that came from the tie-break rather than a resolved minimum.
     lr_tb = {k: v for k, v in (cfg.get("lr_selection") or {}).items()
              if v.get("tie_break_fired")}
     reps_tb = {k: v for k, v in (cfg.get("reps_selection") or {}).items()
-               if v.get("tie_break_fired")}
+               if v.get("tie_break_fired") and v.get('used', True)}
     if lr_tb or reps_tb:
         floor = cfg.get("selection_noise_floor")
         bits = []
@@ -650,13 +712,16 @@ def config_line(res: dict) -> str:
         caveats.append(
             f"**Depth selection was not meaningful for {', '.join('`'+n+'`' for n in noise)}** "
             f"({spreads}, below the {floor} noise floor): the candidates are "
-            "indistinguishable, so the reported depth for these is arbitrary "
-            "rather than chosen.")
+            "treated as tied by the stated heuristic. This diagnostic does "
+            "not override an explicitly pinned depth.")
     if res.get("any_hit_epoch_cap"):
         caveats.append(
             "**At least one model hit the epoch cap** rather than early "
-            "stopping, so it was under-trained relative to models that "
-            "converged. See `hit_epoch_cap` in metrics.json.")
+            "stopping. A cap alone does not establish undertraining; inspect "
+            "the validation histories before claiming convergence. See "
+            "`hit_epoch_cap` in metrics.json. For the released final-v2 matched "
+            "AE, the separately reported extended-budget diagnostic addresses "
+            "the continuing decrease in validation loss.")
     if caveats:
         lines.append("")
         lines.extend("- " + c for c in caveats)
@@ -667,7 +732,7 @@ def main(*argv):
     """CLI: `python -m src.report [metrics.json] [--write-readme]`."""
     flags = [a for a in argv if a.startswith("--")]
     positional = [a for a in argv if not a.startswith("--")]
-    path = positional[0] if positional else "results/metrics.json"
+    path = positional[0] if positional else "results/final-v2/metrics.json"
 
     with open(path) as f:
         res = json.load(f)

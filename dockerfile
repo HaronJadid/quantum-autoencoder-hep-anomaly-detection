@@ -82,7 +82,7 @@ COPY notebooks/ ./notebooks/
 # The frozen snapshot of the reported run, and the selection it was trained
 # under. Without these `verify` has nothing to compare against and would have
 # to re-derive the selection, which takes ~20 minutes.
-COPY results/reference/ ./results/reference/
+COPY results/legacy-v1/reference/ ./results/legacy-v1/reference/
 
 ENTRYPOINT ["python", "tools/entrypoint.py"]
 # Deliberately not `python -m src.run_study`: that silently started a

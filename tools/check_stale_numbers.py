@@ -19,7 +19,7 @@ A hit is not proof of staleness -- it means "this number is not obviously
 traceable to the current results, go and look". Exit code 1 on any hit so it
 can be wired into CI.
 
-    python tools/check_stale_numbers.py [README.md] [results/metrics.json]
+    python tools/check_stale_numbers.py [README.md] [results/final-v2/metrics.json]
 """
 
 from __future__ import annotations
@@ -89,7 +89,7 @@ def known_values(metrics: dict) -> set:
     return vals
 
 
-def main(readme="README.md", metrics_path="results/metrics.json") -> int:
+def main(readme="README.md", metrics_path="results/final-v2/metrics.json") -> int:
     text = open(readme, encoding="utf-8").read()
     if BEGIN in text and END in text:
         head, rest = text.split(BEGIN, 1)

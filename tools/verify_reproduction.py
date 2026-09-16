@@ -7,19 +7,19 @@ autoencoders do not, because their optimisation is chaotic at the selected
 learning rates (tools/diagnose_training_chaos.py demonstrates this directly).
 This script makes both halves of that statement executable: it trains the
 requested seeds, compares each model against the frozen snapshot in
-results/reference/reported_run.json, and prints which matched and by how much
+results/legacy-v1/reference/reported_run.json, and prints which matched and by how much
 the rest drifted.
 
     python tools/verify_reproduction.py                    # seeds 0 1 2
     python tools/verify_reproduction.py --seeds 2 5        # pick seeds
     python tools/verify_reproduction.py --device cuda      # on a GPU
-    python tools/verify_reproduction.py --skip-run --metrics results/metrics.json
+    python tools/verify_reproduction.py --skip-run --metrics results/legacy-v1/metrics.json
 
 Exit code is 0 if every model that is expected to reproduce did so, and 1 if
 one of them drifted -- drift in the classical autoencoders is expected and
 does NOT fail the check, because it is the documented behaviour.
 
-Hyperparameters come from results/reference/selection.json, the selection the
+Hyperparameters come from results/legacy-v1/reference/selection.json, the selection the
 reported numbers were trained under, so this verifies the seed loop rather
 than re-deriving the selection (which takes ~20 minutes and is separately
 known to be platform-independent: the CPU and GPU runs selected identically).
@@ -34,8 +34,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REFERENCE = os.path.join("results", "reference", "reported_run.json")
-SELECTION = os.path.join("results", "reference", "selection.json")
+REFERENCE = os.path.join("results", "legacy-v1", "reference", "reported_run.json")
+SELECTION = os.path.join("results", "legacy-v1", "reference", "selection.json")
 
 # Agreement at the precision the study reports (4 decimal places on AUC).
 # Tighter than this is reported as bit-identical; looser is drift.

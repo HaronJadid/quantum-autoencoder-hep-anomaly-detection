@@ -24,10 +24,29 @@ class History:
     seconds: float = 0.0
 
 
+def validation_loss(model, loss_fn, values, batch_size=8192, weighting="events"):
+    """Evaluate event-mean loss; legacy equal-batch means remain reproducible."""
+    if weighting not in {"events", "legacy-batches"}:
+        raise ValueError(f"unknown validation weighting: {weighting}")
+    if not len(values) or batch_size < 1:
+        raise ValueError("validation data and batch size must be nonempty/positive")
+    total, weight = 0.0, 0
+    with torch.no_grad():
+        for i in range(0, len(values), batch_size):
+            batch = values[i:i + batch_size]
+            loss = float(loss_fn(model, batch))
+            if not np.isfinite(loss):
+                raise FloatingPointError("non-finite validation loss")
+            n = len(batch) if weighting == "events" else 1
+            total += n * loss
+            weight += n
+    return total / weight
+
+
 def train_model(model, loss_fn, train: np.ndarray, val: np.ndarray, *,
                 epochs: int = 60, batch_size: int = 1024, lr: float = 0.05,
                 seed: int = 0, patience: int = 10, verbose: bool = True,
-                dtype=torch.float64) -> History:
+                dtype=torch.float64, validation_weighting="legacy-batches") -> History:
     """Adam + early stopping on validation loss. Restores the best weights.
 
     `loss_fn(model, xb) -> scalar tensor`. Training data is background only.
@@ -35,11 +54,8 @@ def train_model(model, loss_fn, train: np.ndarray, val: np.ndarray, *,
     import time
 
     torch.manual_seed(seed)
-    # Follow the model rather than taking a device argument: the classical
-    # baselines are so cheap (0.03 s per training run, against 12 s per epoch
-    # for a QAE) that moving them to an accelerator would cost more in
-    # transfers than it saves, so only the quantum models are ever built off
-    # the CPU and the data goes wherever the parameters already are.
+    # Follow the model's device. This study builds classical baselines on CPU
+    # and quantum models on the requested device; data follows the parameters.
     device = next(model.parameters()).device
     xtr = torch.as_tensor(train, dtype=dtype).to(device)
     xva = torch.as_tensor(val, dtype=dtype).to(device)
@@ -58,16 +74,24 @@ def train_model(model, loss_fn, train: np.ndarray, val: np.ndarray, *,
             xb = xtr[perm[i:i + batch_size]]
             opt.zero_grad()
             loss = loss_fn(model, xb)
+            if not torch.isfinite(loss):
+                raise FloatingPointError("non-finite training loss")
             loss.backward()
             opt.step()
             running += float(loss.detach())
             nb += 1
 
         model.eval()
-        with torch.no_grad():
-            vl = float(np.mean([
-                float(loss_fn(model, xva[i:i + 8192]))
-                for i in range(0, len(xva), 8192)]))
+        if validation_weighting == "legacy-batches":
+            # Preserve the historical floating-point reduction exactly.
+            with torch.no_grad():
+                vl = float(np.mean([
+                    float(loss_fn(model, xva[i:i + 8192]))
+                    for i in range(0, len(xva), 8192)]))
+        else:
+            vl = validation_loss(model, loss_fn, xva, weighting=validation_weighting)
+        if not np.isfinite(vl):
+            raise FloatingPointError("non-finite validation loss")
         hist.train_loss.append(running / max(nb, 1))
         hist.val_loss.append(vl)
         hist.epochs_run = epoch + 1

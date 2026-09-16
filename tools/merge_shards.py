@@ -64,6 +64,10 @@ def check_consistent(shards):
             f"--selection-from, so it may have selected its own "
             f"hyperparameters. Refusing to merge.")
     fields = {
+        "protocol": lambda d: d['config'].get('protocol', 'legacy-v1'),
+        "validation_weighting": lambda d: d['config'].get('validation_weighting', 'legacy-batches'),
+        "split_policy": lambda d: d['config'].get('split_policy', 'resampled'),
+        "split_seed": lambda d: d['config'].get('split_seed'),
         "selection_digest": lambda d: d["config"]["selection_digest"],
         "ansatz_reps": lambda d: d["config"]["ansatz_reps"],
         "lr_selected": lambda d: d["config"]["lr_selected"],
@@ -175,7 +179,7 @@ def main():
     out["config"]["parallel"] = {
         "shards": {os.path.relpath(p): d["config"]["seeds"] for p, d in shards},
         "selection_digest": digest,
-        "note": "seeds were trained in parallel processes under one frozen "
+        "note": "seeds were trained in separate worker processes under one frozen "
                 "selection; each seed's result is independent of which "
                 "process trained it, every model being explicitly seeded.",
     }
@@ -215,8 +219,9 @@ def main():
     abl = (out.get("diagnostic_ae_dense_ablation") or {}).get("results")
     print(f"  ablation: {'present' if abl else 'ABSENT'}")
     print(f"  3-prong : {len(qqq_per_seed)} models")
-    print(f"  wall: {out['wall_seconds']/60:.0f} min elapsed (longest worker), "
-          f"{out['wall_seconds_summed']/60:.0f} min of CPU work")
+    print(f"  worker wall time: {out['wall_seconds']/60:.0f} min longest, "
+          f"{out['wall_seconds_summed']/60:.0f} min summed; "
+          "neither includes the complete selection/orchestration time")
     for name in sorted(out["summary"]):
         a = out["summary"][name]["auc"]
         print(f"    {name:14s} AUC {a['mean']:.4f} +/- {a['std']:.4f} "

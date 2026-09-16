@@ -146,12 +146,17 @@ def paired_comparison(runs_a: list, runs_b: list, metric: str = "auc") -> dict:
     mean = float(d.mean())
     sd = float(d.std(ddof=1)) if n > 1 else 0.0
     sem = sd / np.sqrt(n) if n > 1 else 0.0
-    if n > 1 and sem > 0:
+    # Repeated deterministic controls on a fixed split are not independent
+    # measurements. A constant difference can have tiny nonzero SD from
+    # floating-point subtraction/reduction; that must not yield a t-test.
+    degenerate = n < 2 or np.ptp(d) == 0
+    if n > 1 and sem > 0 and not degenerate:
         t = mean / sem
         p = float(2 * stats.t.sf(abs(t), df=n - 1))
     else:
         t, p = float("nan"), float("nan")
     return {
+        "degenerate": bool(degenerate),
         "mean_difference": mean, "sem": float(sem), "t": float(t), "p_value": p,
         "n_seeds": n, "per_seed_difference": d.tolist(),
         "significant_at_0.05": bool(p == p and p < 0.05),

@@ -1,0 +1,52 @@
+{
+  "purpose": "Matched-AE training-budget sensitivity; not retuning",
+  "original_metrics_sha256": "4ef09fa8542955e84e14062c8ff5df941ae24adf16fcfce4a251e0eceef1265d",
+  "selection_digest": "f34c739c8982f99e",
+  "max_epochs": 3000,
+  "patience": 20,
+  "batch_size": 4096,
+  "lr": 0.001,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "source_hashes": {
+    "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/baselines.py": "1458cc83c62104b1b458ed12538ad644888292ec0a71b420b8362aeb331ee2d0",
+    "src/data.py": "cc312369afc063c5fba989f64ff699f5c2d9b073e7618f63710198c9fd2a0670",
+    "src/encoding_analysis.py": "0fc492941290dbc9d6a234ebe22910959763084f876c0ad1e98e152cfe6e3b47",
+    "src/evaluate.py": "19e9905e93c0b2290f189fb8ef222ced32943168d78afd6a8395d6a433528e00",
+    "src/figures.py": "c397a1793e6177b82d706341b7f01d9789a61564b9cfe6feb3e4ad0d74201c74",
+    "src/qae.py": "6937c09192e806f11cd25464b676d80f5b98588aae6c79236bc1bb870982a2c4",
+    "src/report.py": "f851e86b03e8110098591f657ebffa369802f10be8f692682119a4e2545fa54f",
+    "src/run_study.py": "606c8adc7e743cc8434447731dd64b70874c0856b0fb6575e1b9c5e33be44039",
+    "src/train.py": "8fa166628696c3d0ad05d10e514d18adab39e29ac1a70421c0459843f3bd603d"
+  },
+  "environment": {
+    "python": "3.13.15",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+    "device": "cpu",
+    "torch": "2.11.0+cu128",
+    "pennylane": "0.45.1",
+    "qiskit": "2.5.2",
+    "numpy": "2.1.3",
+    "pandas": "2.2.3",
+    "sklearn": "1.6.1",
+    "scipy": "1.16.3",
+    "matplotlib": "3.10.0"
+  },
+  "threads": 1
+}

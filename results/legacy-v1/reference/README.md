@@ -1,4 +1,7 @@
-Reference snapshot of the run reported in README.md, and the inputs needed to
+Historical legacy-v1 reference, not the final-v2 study headlined in the current
+repository README. The observations below describe the earlier protocol only.
+
+Reference snapshot of the run reported in the historical README, and the inputs needed to
 check a reproduction attempt against it.
 
 ## What to expect before you run anything
@@ -35,6 +38,22 @@ where the most chaotic model happens to look stable. Run several.
 For ae_matched and the three untied AEs the worst-case drift EXCEEDS their
 across-seed s.d., which means the +/- quoted for them in the README measures
 seeds and misses a larger effect.
+
+## The same platform reproduces everything exactly
+
+Re-running seed 0 on Colab on 2026-09-12 -- same Tesla T4, same Python 3.13,
+same torch 2.11.0+cu128 -- reproduced all NINE models bit for bit, maximum
+|dAUC| exactly 0.0, the five chaotic classical autoencoders included.
+
+That is the other half of the picture and it matters for how the drift should
+be read. These models are not nondeterministic: nothing in the training loop
+is unseeded, and running it again on the same arithmetic gives the same
+answer to the last bit. They are non-portable. A chaotic trajectory is
+perfectly repeatable as long as nothing perturbs it, and changing machine
+perturbs it at the 1e-16 level, which is enough.
+
+So "ae_matched moved by 0.157" is a statement about moving between machines,
+not about the model being unstable run-to-run in one place.
 
 ## Why the classical drift is attributable to the optimisation
 
@@ -90,6 +109,26 @@ cpu_run_interrupted_2026-09-10.json
                      table above. Parsed from that run's stdout, which is all
                      that survives it, so it carries 4 decimal places on AUC
                      and no more.
+
+## The per-event scores behind two of the figures
+
+results/figures/scores.png and sculpting.png need one anomaly score per test
+event per model -- about a million values each -- which is far too much for
+metrics.json. They were drawn by the 2026-09-12 seed-0 re-run described
+above, which also saved the raw scores to
+
+    results/parallel/seed0_scores/first_seed_scores.npz     (68 MB)
+
+That file is NOT in git: it is 68 MB of regenerable binary, and .gitignore
+excludes *.npz. It is kept locally because a later feature-attribution
+analysis would need per-event scores rather than summaries. To recreate it,
+re-run the command in the README's Colab section with --save-first; to redraw
+the two figures from it without retraining:
+
+    python tools/draw_event_figures.py results/parallel/seed0_scores/first_seed_scores.npz
+
+Because that re-run matched the reported table bit for bit on all nine
+models, the two figures show the same run the table does.
 
 To check a reproduction:      python tools/verify_reproduction.py
 To see why five models drift: python tools/diagnose_training_chaos.py

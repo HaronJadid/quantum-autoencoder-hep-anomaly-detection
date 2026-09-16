@@ -7,7 +7,7 @@ therefore saves them to an .npz (`--save-first`) and this draws from that,
 so those two figures still come from the real scores of the real run rather
 than being approximated from anything summarised.
 
-    python tools/draw_event_figures.py results/parallel/first_seed_scores.npz
+    python tools/draw_event_figures.py results/legacy-v1/parallel/first_seed_scores.npz
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.figures import score_figure, sculpting_figure  # noqa: E402
 
 
-def main(npz="results/parallel/first_seed_scores.npz",
-         outdir="results/figures") -> int:
+def main(npz="results/legacy-v1/parallel/first_seed_scores.npz",
+         outdir="results/legacy-v1/figures") -> int:
     d = np.load(npz)
     scores = {k[len("score__"):]: d[k] for k in d.files if k.startswith("score__")}
     if not scores:

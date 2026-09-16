@@ -1,0 +1,3 @@
+# Preserve exact evidence bytes: recorded SHA-256 hashes must survive checkout
+# on Windows and Linux. These files are intentionally not newline-normalised.
+results/final-v2/** -text

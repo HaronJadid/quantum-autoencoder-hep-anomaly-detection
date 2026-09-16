@@ -1,4 +1,4 @@
-"""Figures for the README, generated from results/metrics.json."""
+"""Figures for the README, generated from results/final-v2/metrics.json."""
 
 from __future__ import annotations
 
@@ -195,81 +195,47 @@ def _spread(values: dict, gap: float, lo: float, hi: float) -> dict:
 
 
 def generalisation_figure(res: dict, path: str):
-    """2-prong vs 3-prong AUC, one line per model, on a shared scale.
+    """All main-study models: AUC mean +/- sample SD, two evaluation signals.
 
-    A slope chart rather than a grouped bar chart: the quantity of interest is
-    the CHANGE each model undergoes when the signal topology changes, and a
-    slope shows a change directly instead of asking the reader to subtract two
-    bar heights. Both axes carry the same scale so a slope's steepness is
-    comparable across models, and 0.5 is drawn because a line crossing it has
-    gone from better than guessing to worse.
+    Shared axes avoid hiding the ranking reversal or overlapping error bars.
+    The bars are training-seed variability, not confidence intervals.
     """
     qqq = (res.get("generalisation_qqq") or {}).get("summary") or {}
     if not qqq:
         return False
     names = [n for n in _order(res["summary"]) if n in qqq]
-    left = {n: res["summary"][n]["auc"]["mean"] for n in names}
-    right = {n: qqq[n]["auc"]["mean"] for n in names}
-
-    fig, ax = plt.subplots(figsize=(7.6, 5.8))
-    lo = min(min(left.values()), min(right.values()), 0.5) - 0.055
-    hi = max(max(left.values()), max(right.values()), 0.5) + 0.045
-    ax.axhline(0.5, color="k", lw=1.0, ls=":", zorder=1)
-    ax.text(1.5, 0.5, "  random (0.5)", va="center", ha="center", fontsize=8,
-            color="k", bbox=dict(fc="white", ec="none", pad=1), zorder=4)
-
-    for n in names:
-        c = COLORS.get(n, "#888")
-        ax.plot([1, 2], [left[n], right[n]], "-o", color=c, lw=2.0, ms=5.5,
-                zorder=3, alpha=0.95)
-
-    # Names all go on the right, pushed apart vertically where they would
-    # collide and joined to their point by a leader line. Labelling each line
-    # at whichever end "has room" sounds reasonable but does not survive
-    # contact with this data: five models sit inside 0.05 AUC on the left and
-    # their labels simply overprint each other.
-    gap = (hi - lo) * 0.042
-    placed = _spread({n: right[n] for n in names}, gap, lo, hi)
-    left_placed = _spread({n: left[n] for n in names}, gap * 0.8, lo, hi)
-    for n in names:
-        # Both coordinates in DATA units. Mixing "offset points" for x with
-        # "data" for y makes matplotlib read the y value as a relative offset,
-        # so an absolute AUC of 0.73 shifts the label 0.73 up the axis and off
-        # the figure.
-        ax.annotate(f"{left[n]:.3f}", (1, left[n]),
-                    xytext=(0.955, left_placed[n]), textcoords="data",
-                    va="center", ha="right", fontsize=8,
-                    color=COLORS.get(n, "#888"),
-                    arrowprops=dict(arrowstyle="-", color=COLORS.get(n, "#888"),
-                                    lw=0.6, alpha=0.45, shrinkA=0, shrinkB=3))
-    for n in names:
-        c = COLORS.get(n, "#888")
-        ax.annotate(f"{LABELS.get(n, n)}  {right[n]:.3f}",
-                    (2, right[n]), xytext=(2.06, placed[n]),
-                    textcoords="data",
-                    va="center", ha="left", fontsize=8, color=c,
-                    # Labels can land on the gridlines or the 0.5 rule; a flat
-                    # white pad keeps them readable without drawing a box.
-                    bbox=dict(fc="white", ec="none", alpha=0.85, pad=0.8),
-                    arrowprops=dict(arrowstyle="-", color=c, lw=0.7,
-                                    alpha=0.55,
-                                    shrinkA=0, shrinkB=2))
-    ax.set_xlim(0.72, 3.05)
-    ax.set_ylim(lo, hi)
-    ax.set_xticks([1, 2])
-    ax.set_xticklabels(["2-prong  (X,Y" + r"$\to$" + "qq)\ntrained-on topology",
-                        "3-prong  (X,Y" + r"$\to$" + "qqq)\nnever-seen topology"],
-                       fontsize=9)
-    ax.set_ylabel("ROC-AUC (mean over seeds)")
-    ax.grid(axis="y", alpha=0.3)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    n_seeds = res["summary"][names[0]]["auc"]["n"]
-    ax.set_title("ROC-AUC on the trained-on signal and on a second signal "
-                 "topology\n"
-                 f"(mean over {n_seeds} seeds; same trained models, "
-                 "same background test split)", fontsize=10)
-    fig.tight_layout()
+    blocks = [res["summary"], qqq]
+    bounds = [block[n]["auc"]["mean"] + sign * block[n]["auc"]["std"]
+              for block in blocks for n in names for sign in (-1, 1)]
+    lo, hi = max(0, min(bounds + [0.5]) - .035), min(1, max(bounds + [0.5]) + .035)
+    fig, axes = plt.subplots(1, 2, figsize=(11.8, 6.4), sharex=True, sharey=True)
+    labels = [LABELS.get(n, n) for n in names]
+    labels = [label + " [no bottleneck]" if n == "ae_matched" else label
+              for n, label in zip(names, labels)]
+    for ax, block, title in zip(axes, blocks, ["Primary: two-prong", "Alternate: three-prong"]):
+        for row, name in enumerate(names):
+            value = block[name]["auc"]
+            ax.errorbar(value["mean"], row, xerr=value["std"],
+                        fmt="o", color=COLORS.get(name, "#888"),
+                        capsize=4, markersize=5, elinewidth=1.6)
+        ax.axvline(.5, color="0.45", linestyle=":", linewidth=1, label="Random ordering")
+        ax.set_xlim(lo, hi)
+        ax.set_xlabel("ROC-AUC")
+        ax.set_title(title)
+        ax.grid(axis="x", alpha=.25)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+    axes[0].set_yticks(range(len(names)), labels, fontsize=9)
+    axes[0].invert_yaxis()
+    axes[1].legend(loc="lower right", fontsize=8)
+    count = res["summary"][names[0]]["auc"]["n"]
+    fig.suptitle("Signal-dependent ranking after background-only training\n"
+                 f"Mean ± sample SD across {count} training seeds; fixed data partition",
+                 fontsize=12)
+    fig.text(.64, .02, "Bars show training variability, not confidence intervals.\n"
+                       "Main study only; extended-budget diagnostic reported separately.",
+             ha="center", fontsize=9)
+    fig.tight_layout(rect=[0, .075, 1, .91])
     fig.savefig(path, dpi=160)
     plt.close(fig)
     return True
@@ -284,8 +250,8 @@ def circuit_figure(path: str, n_qubits: int = 6, reps: int = 3):
     plt.close(fig)
 
 
-def make_all(results_path: str = "results/metrics.json",
-             outdir: str = "results/figures"):
+def make_all(results_path: str = "results/final-v2/metrics.json",
+             outdir: str = "results/final-v2/figures"):
     os.makedirs(outdir, exist_ok=True)
     with open(results_path) as f:
         res = json.load(f)
@@ -307,7 +273,7 @@ if __name__ == "__main__":
     import argparse
 
     _ap = argparse.ArgumentParser(description=__doc__)
-    _ap.add_argument("--results", default="results/metrics.json")
+    _ap.add_argument("--results", default="results/final-v2/metrics.json")
     _ap.add_argument("--outdir", default=None,
                      help="default: a 'figures' directory beside --results")
     _a = _ap.parse_args()

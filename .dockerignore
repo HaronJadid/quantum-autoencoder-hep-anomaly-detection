@@ -9,11 +9,13 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Run outputs. results/reference/ IS copied (verify needs it) and is
+# Run outputs. The legacy reference IS copied (legacy verify needs it) and is
 # re-included below; everything else under results/ is either regenerated in
 # the container or mounted from the host.
 results/*
-!results/reference/
+!results/legacy-v1/
+results/legacy-v1/*
+!results/legacy-v1/reference/
 results/smoke/
 results/verify/
 results/verify5/
@@ -22,3 +24,5 @@ results/superseded/
 
 *.zip
 *.npz
+runs/
+CV_PROJECT.md

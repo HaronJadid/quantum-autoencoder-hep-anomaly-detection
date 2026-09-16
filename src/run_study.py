@@ -6,9 +6,9 @@
 
 Writes results/metrics.json and results/figures/*.png.
 
-Each seed re-draws the train/val/test split AND re-initialises every model, so
-the quoted spread covers both sources of variation rather than initialisation
-alone. Every model in a seed sees exactly the same events.
+Legacy-v1 redraws splits per seed. Final-v2 fixes the partition and preprocessing
+while varying model initialisation and minibatch order. Every model in a seed
+sees exactly the same events. Use the notebook for the released protocol.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def scale(train, *others, seed=0):
 SELECTION_NOISE_FLOOR = 0.01
 
 
-def resolve_tie(scores: dict, prefer):
+def resolve_tie(scores: dict, prefer, tolerance=SELECTION_NOISE_FLOOR):
     """Pick among candidates that the objective cannot distinguish.
 
     `scores` maps candidate -> validation loss (lower is better). Any candidate
@@ -87,7 +87,7 @@ def resolve_tie(scores: dict, prefer):
     """
     best_value = min(scores.values())
     raw_argmin = min(scores, key=scores.get)
-    tied = sorted(k for k, v in scores.items() if v - best_value < SELECTION_NOISE_FLOOR)
+    tied = sorted(k for k, v in scores.items() if v - best_value < tolerance)
     selected = prefer(tied)
     ordered = sorted(scores.values())
     gap = (ordered[1] - ordered[0]) if len(ordered) > 1 else float("inf")
@@ -99,12 +99,13 @@ def resolve_tie(scores: dict, prefer):
         "selected": selected,
         "tie_break_fired": selected != raw_argmin,
         "within_noise_floor": len(tied) > 1,
-        "noise_floor": SELECTION_NOISE_FLOOR,
+        "noise_floor": tolerance,
     }
 
 
 def select_reps(xtr, xva, feature_map, candidates, epochs, batch_size, lr,
-                seed=0, verbose=True):
+                seed=0, verbose=True, device=None,
+                validation_weighting="legacy-batches", tolerance=SELECTION_NOISE_FLOOR):
     """Choose ansatz depth by validation loss on BACKGROUND ONLY.
 
     This is legitimate unsupervised model selection: it uses no labels, no
@@ -123,27 +124,28 @@ def select_reps(xtr, xva, feature_map, candidates, epochs, batch_size, lr,
     scores = {}
     for reps in candidates:
         m = QuantumAutoencoder(N_QUBITS, N_TRASH, reps, seed=seed,
-                               feature_map=feature_map)
+                               feature_map=feature_map, device=device)
         h = train_model(m, qae_loss, xtr, xva, epochs=epochs,
-                        batch_size=batch_size, lr=lr, seed=seed, verbose=False)
+                        batch_size=batch_size, lr=lr, seed=seed, verbose=False,
+                        validation_weighting=validation_weighting)
         scores[reps] = min(h.val_loss)
         if verbose:
             print(f"    reps={reps:2d} ({n_params(N_QUBITS, reps):3d} par.): "
                   f"best val loss {scores[reps]:.5f}")
     # Shallowest among depths the objective cannot separate.
-    best, info = resolve_tie(scores, prefer=min)
+    best, info = resolve_tie(scores, prefer=min, tolerance=tolerance)
     spread = max(scores.values()) - min(scores.values())
     # Preserved with its original meaning: the UNCONSTRAINED argmin sat at the
     # top of the grid, so the grid ran out before the optimum did.
     raw_at_top = info["raw_argmin"] == max(candidates)
-    weak = spread < SELECTION_NOISE_FLOOR
+    weak = spread < tolerance
 
     if verbose:
         print(f"    -> selected reps={best} for the {feature_map} encoding "
               f"(spread best-worst = {spread:.5f})")
         if info["tie_break_fired"]:
             print(f"    TIE-BREAK [{feature_map}]: depths {info['tied_set']} are "
-                  f"within {SELECTION_NOISE_FLOOR} of each other "
+                  f"within {tolerance} of each other "
                   f"(best-vs-second gap {info['best_vs_second_gap']:.5f}); "
                   f"argmin was reps={info['raw_argmin']}, selected the "
                   f"shallowest tied depth reps={best} instead.")
@@ -153,7 +155,7 @@ def select_reps(xtr, xva, feature_map, candidates, epochs, batch_size, lr,
                   f"lie beyond it.")
         if weak:
             print(f"    WARNING [{feature_map}]: spread {spread:.5f} < "
-                  f"{SELECTION_NOISE_FLOOR}; candidates are indistinguishable "
+                  f"{tolerance}; candidates are tied by the stated rule "
                   f"and this depth selection is not meaningful.")
     info.update({"spread": spread, "hit_boundary": raw_at_top,
                  "below_noise_floor": weak,
@@ -162,7 +164,9 @@ def select_reps(xtr, xva, feature_map, candidates, epochs, batch_size, lr,
 
 
 def select_lr(build, loss_fn, xtr, xva, candidates, epochs, batch_size,
-              seed=0, label="", verbose=True):
+              seed=0, label="", verbose=True, initialisation_seeds=None,
+              validation_weighting="legacy-batches", tolerance=SELECTION_NOISE_FLOOR,
+              patience=10):
     """Choose a learning rate per model family, on BACKGROUND validation loss.
 
     Same legitimacy argument as `select_reps`: label-free, signal-free,
@@ -182,27 +186,38 @@ def select_lr(build, loss_fn, xtr, xva, candidates, epochs, batch_size,
 
     `build(seed)` returns a fresh model.
     """
-    scores = {}
+    scores, histories = {}, {}
+    selection_seeds = initialisation_seeds or [seed]
     for lr in candidates:
-        h = train_model(build(seed), loss_fn, xtr, xva, epochs=epochs,
-                        batch_size=batch_size, lr=lr, seed=seed, verbose=False)
-        scores[lr] = min(h.val_loss)
+        records = []
+        for init_seed in selection_seeds:
+            h = train_model(build(init_seed), loss_fn, xtr, xva, epochs=epochs,
+                            batch_size=batch_size, lr=lr, seed=init_seed, verbose=False,
+                            validation_weighting=validation_weighting, patience=patience)
+            records.append({'seed': init_seed, 'best_val_loss': min(h.val_loss),
+                            'best_epoch': h.best_epoch, 'epochs_run': h.epochs_run,
+                            'hit_epoch_cap': h.epochs_run >= epochs})
+        histories[str(lr)] = records
+        scores[lr] = float(np.mean([r['best_val_loss'] for r in records]))
         if verbose:
             print(f"    lr={lr:<8g} best val loss {scores[lr]:.6f}")
 
     # Smallest among rates the objective cannot separate.
-    best, info = resolve_tie(scores, prefer=min)
+    best, info = resolve_tie(scores, prefer=min, tolerance=tolerance)
     spread = max(scores.values()) - min(scores.values())
     if verbose:
         print(f"    -> selected lr={best} for {label}")
         if info["tie_break_fired"]:
             print(f"    TIE-BREAK [{label}]: rates {info['tied_set']} are within "
-                  f"{SELECTION_NOISE_FLOOR} of each other (best-vs-second gap "
+                  f"{tolerance} of each other (best-vs-second gap "
                   f"{info['best_vs_second_gap']:.5f}); argmin was "
                   f"lr={info['raw_argmin']}, selected the smallest tied rate "
                   f"lr={best} instead.")
     info.update({"spread": spread,
-                 "hit_boundary": best in (min(candidates), max(candidates))})
+                 "hit_boundary": best in (min(candidates), max(candidates)),
+                 "candidate_runs": histories, "epochs": epochs,
+                 "n_train": len(xtr), "initialisation_seeds": selection_seeds,
+                 "selected_hit_epoch_cap": any(r['hit_epoch_cap'] for r in histories[str(best)])})
     return best, info
 
 
@@ -248,7 +263,8 @@ def ablate_dense(df, seeds, n_train, n_val, batch_size, lr, patience,
 
 
 def run_seed(splits, seed, epochs, batch_size, lr_by_model, reps_by_map,
-             patience=20, extra_signal=None, verbose=True, device=None):
+             patience=20, extra_signal=None, verbose=True, device=None,
+             validation_weighting="legacy-batches", scaler_seed=None):
     """Train and score every model on one split.
 
     `extra_signal` is raw (unscaled) features for a second, never-trained-on
@@ -256,12 +272,13 @@ def run_seed(splits, seed, epochs, batch_size, lr_by_model, reps_by_map,
     background training split and scored by the same trained models, so the
     generalisation numbers come from models that never saw it in any form.
     """
+    preprocessing_seed = seed if scaler_seed is None else scaler_seed
     if extra_signal is None:
-        xtr, xva, xte = scale(splits.train, splits.val, splits.test, seed=seed)
+        xtr, xva, xte = scale(splits.train, splits.val, splits.test, seed=preprocessing_seed)
         xex = None
     else:
         xtr, xva, xte, xex = scale(splits.train, splits.val, splits.test,
-                                   extra_signal, seed=seed)
+                                   extra_signal, seed=preprocessing_seed)
     scores, histories, params, capped = {}, {}, {}, {}
     extra_scores, meta = {}, {}
 
@@ -269,22 +286,22 @@ def run_seed(splits, seed, epochs, batch_size, lr_by_model, reps_by_map,
         """Train one model at its own selected learning rate, then score it."""
         h = train_model(model, loss_fn, xtr, xva, epochs=epochs,
                         batch_size=batch_size, lr=lr_by_model[tag], seed=seed,
-                        patience=patience, verbose=verbose)
+                        patience=patience, verbose=verbose,
+                        validation_weighting=validation_weighting)
         histories[tag] = h
         scores[tag] = score_fn(model, xte)
         if xex is not None:
             extra_scores[tag] = score_fn(model, xex)
         params[tag] = count_params(model)
-        # The epoch cap must not be what stops training: if it binds, the model
-        # was still improving and is under-trained relative to models that did
-        # converge, which silently biases the comparison.
+        # A cap requires inspection of validation histories; it is not by
+        # itself proof that a model is still improving or another converged.
         hit = h.epochs_run >= epochs
         capped[tag] = hit
         if hit:
             print(f"    *** WARNING: {tag} (seed {seed}) hit the epoch cap "
                   f"({epochs}) without early stopping -- best epoch "
-                  f"{h.best_epoch}. It is under-trained relative to models that "
-                  f"converged; raise --epochs.")
+                  f"{h.best_epoch}. Inspect validation history before claiming "
+                  f"convergence.")
         return h
 
     # Two quantum autoencoders identical except for the feature map: same
@@ -295,7 +312,7 @@ def run_seed(splits, seed, epochs, batch_size, lr_by_model, reps_by_map,
     # qae_ry  : the RY-encoded model.
     # qae_zz  : the textbook ZZFeatureMap choice, included because it is the
     #           obvious thing to try and because showing that it provably
-    #           cannot compress (see encoding_analysis) is a result in itself.
+    #           has limited empirical compression headroom is a useful diagnostic.
     for tag, fmap in (("qae_ry", "ry"), ("qae_zz", "zz")):
         reps = reps_by_map[fmap]
         if verbose:
@@ -403,7 +420,7 @@ def selection_guard(args) -> dict:
     at all. This is recorded alongside the selection and compared on load; a
     mismatch is fatal rather than a warning.
     """
-    return {
+    guard = {
         "n_qubits": N_QUBITS, "n_trash": N_TRASH, "features": list(FEATURES),
         "reps_candidates": list(args.reps_candidates),
         "lr_candidates": list(args.lr_candidates),
@@ -412,6 +429,13 @@ def selection_guard(args) -> dict:
         "n_train": args.n_train, "n_val": args.n_val,
         "noise_floor": SELECTION_NOISE_FLOOR,
     }
+    if getattr(args, 'protocol', 'legacy-v1') == 'final-v2':
+        guard.update(protocol=args.protocol, split_seed=args.split_seed,
+                     validation_weighting='events', selection_tolerance=1e-9,
+                     classical_selection_epochs=args.epochs,
+                     classical_selection_patience=args.patience,
+                     classical_selection_seeds=[10000, 10001, 10002])
+    return guard
 
 
 def compute_selection(args, df, sel_seed, device=None):
@@ -441,8 +465,12 @@ def compute_selection(args, df, sel_seed, device=None):
     # once, on the selection seed's background training set.
     print("=" * 70)
     print("Encoding compressibility (upper bound over ALL ansaetze)")
-    probe = make_splits(df, args.n_train, args.n_val, seed=sel_seed)
-    xprobe, = scale(probe.train, seed=sel_seed)
+    final = args.protocol == 'final-v2'
+    split_seed = args.split_seed if final else sel_seed
+    weighting = 'events' if final else 'legacy-batches'
+    tolerance = 1e-9 if final else SELECTION_NOISE_FLOOR
+    probe = make_splits(df, args.n_train, args.n_val, seed=split_seed)
+    xprobe, = scale(probe.train, seed=split_seed)
     encoding = {}
     for fmap in FEATURE_MAPS:
         encoding[fmap] = compressibility(FEATURE_MAPS[fmap], xprobe,
@@ -455,14 +483,15 @@ def compute_selection(args, df, sel_seed, device=None):
     print("=" * 70)
     print(f"Selecting ansatz depth on background validation loss "
           f"({args.select_n:,} events, {args.select_epochs} epochs)")
-    xtr_p, xva_p = scale(probe.train, probe.val, seed=sel_seed)
-    xtr_p = xtr_p[:args.select_n]
+    xtr_full, xva_p = scale(probe.train, probe.val, seed=split_seed)
+    xtr_p = xtr_full[:args.select_n]
     reps_by_map, reps_scan = {}, {}
     for fmap in FEATURE_MAPS:
         print(f"  {fmap} encoding:")
         best, scan = select_reps(xtr_p, xva_p, fmap, args.reps_candidates,
                                  args.select_epochs, args.batch_size, args.lr,
-                                 seed=sel_seed)
+                                 seed=sel_seed, device=device,
+                                 validation_weighting=weighting, tolerance=tolerance)
         reps_by_map[fmap] = best
         scan["scores"] = {str(k): v for k, v in scan["scores"].items()}
         scan["used"] = True
@@ -485,8 +514,7 @@ def compute_selection(args, df, sel_seed, device=None):
         reps_scan["zz"]["would_have_selected"] = pinned_from
         reps_by_map["zz"] = pinned_to
         print(f"  PINNED: zz ansatz depth set to ry's reps={pinned_to} "
-              f"(its own scan would have given reps={pinned_from}, but every "
-              f"candidate tied within {SELECTION_NOISE_FLOOR}). The zz model "
+              f"(its own unused scan would have given reps={pinned_from}). The zz model "
               f"isolates the feature map, so depth is held equal to ry's "
               f"rather than selected; its scan is recorded but not used.")
 
@@ -502,11 +530,23 @@ def compute_selection(args, df, sel_seed, device=None):
     lr_by_model, lr_scan = {}, {}
     for tag, (build, loss_fn) in model_builders(reps_by_map, device).items():
         print(f"  {tag}:")
-        best_lr, scan = select_lr(build, loss_fn, xtr_p, xva_p,
-                                  args.lr_candidates, args.select_epochs,
-                                  args.batch_size, seed=sel_seed, label=tag)
+        classical_full = final and tag.startswith('ae_')
+        print(f"    actual budget: {len(xtr_full) if classical_full else len(xtr_p)} "
+              f"events, {args.epochs if classical_full else args.select_epochs} "
+              f"epochs, {3 if classical_full else 1} initialisation(s)")
+        best_lr, scan = select_lr(build, loss_fn,
+                                  xtr_full if classical_full else xtr_p, xva_p,
+                                  args.lr_candidates,
+                                  args.epochs if classical_full else args.select_epochs,
+                                  args.batch_size, seed=sel_seed, label=tag,
+                                  initialisation_seeds=[10000, 10001, 10002] if classical_full else None,
+                                  validation_weighting=weighting, tolerance=tolerance,
+                                  patience=args.patience if final else 10)
         lr_by_model[tag] = best_lr
         lr_scan[tag] = scan
+        if scan.get('selected_hit_epoch_cap'):
+            print(f"    WARNING [{tag}]: a selected candidate reached its selection "
+                  "epoch limit; inspect background validation histories.")
         if scan["hit_boundary"]:
             print(f"    WARNING [{tag}]: selected lr is at the edge of the "
                   f"candidate grid {args.lr_candidates}; the optimum may lie "
@@ -576,6 +616,9 @@ def model_builders(reps_by_map, device=None):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument('--protocol', choices=['legacy-v1', 'final-v2'], default='legacy-v1',
+                    help='final-v2 uses event-weighted validation and a fixed split')
+    ap.add_argument('--split-seed', type=int, default=0)
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3, 4])
     ap.add_argument("--n-train", type=int, default=100_000)
     ap.add_argument("--n-val", type=int, default=20_000)
@@ -644,14 +687,16 @@ def main():
                          "running it beside the seed workers")
     ap.add_argument("--device", default=None,
                     help="torch device for the QUANTUM models only, e.g. "
-                         "cuda. The classical baselines train in 0.03 s and "
-                         "stay on the CPU: moving them would cost more in "
-                         "transfers than it saves")
+                         "cuda. Classical baselines remain on CPU.")
     ap.add_argument("--threads", type=int, default=None,
                     help="torch intra-op threads. Set to 1 when running "
                          "several workers at once: the tensors here are tiny "
                          "and thread contention costs more than it buys")
     args = ap.parse_args()
+    if args.protocol == 'final-v2' and not args.no_ablation and not args.selection_only:
+        ap.error('final-v2 requires --no-ablation; the old attribution diagnostic is historical')
+    if args.protocol == 'final-v2' and os.path.abspath(args.out) == os.path.abspath('results'):
+        ap.error('final-v2 requires a separate --out directory to preserve the reported study')
 
     if args.threads:
         torch.set_num_threads(args.threads)
@@ -720,11 +765,15 @@ def main():
     for seed in train_seeds:
         print("=" * 70)
         print(f"SEED {seed}")
-        splits = make_splits(df, args.n_train, args.n_val, seed=seed)
+        final = args.protocol == 'final-v2'
+        splits = make_splits(df, args.n_train, args.n_val,
+                             seed=args.split_seed if final else seed)
         scores, hist, params, capped, extra, seed_meta = run_seed(
             splits, seed, args.epochs, args.batch_size, lr_by_model,
             reps_by_map, patience=args.patience, extra_signal=qqq_raw,
-            device=args.device)
+            device=args.device,
+            validation_weighting='events' if final else 'legacy-batches',
+            scaler_seed=args.split_seed if final else None)
         all_params = params
         all_capped[seed] = capped
         matched_spec = seed_meta.get("ae_matched")
@@ -787,12 +836,16 @@ def main():
 
     out = {
         "config": {
+            "protocol": args.protocol,
+            "validation_weighting": 'events' if args.protocol == 'final-v2' else 'legacy-batches',
+            "split_policy": 'fixed' if args.protocol == 'final-v2' else 'resampled',
+            "split_seed": args.split_seed if args.protocol == 'final-v2' else None,
             "n_qubits": N_QUBITS, "n_latent": LATENT, "n_trash": N_TRASH,
             "ansatz_reps": reps_by_map, "reps_selection": reps_scan,
             "reps_candidates": args.reps_candidates,
             "reps_selection_hit_boundary": reps_boundary,
             "reps_selection_below_noise_floor": reps_noise,
-            "selection_noise_floor": SELECTION_NOISE_FLOOR,
+            "selection_noise_floor": 1e-9 if args.protocol == 'final-v2' else SELECTION_NOISE_FLOOR,
             "lr_selected": lr_by_model, "lr_selection": lr_scan,
             "lr_candidates": args.lr_candidates,
             "selection_budget": {"n_events": args.select_n,
@@ -801,6 +854,10 @@ def main():
                                  "order": "depth at default lr, then lr at "
                                           "selected depth (one coordinate pass, "
                                           "not a joint search)"},
+            "classical_selection_budget": ({'n_events': args.n_train,
+                 'epochs': args.epochs, 'patience': args.patience,
+                 'initialisation_seeds': [10000, 10001, 10002]}
+                 if args.protocol == 'final-v2' else None),
             "features": FEATURES,
             "n_train": args.n_train, "n_val": args.n_val,
             "epochs": args.epochs, "patience": args.patience,
@@ -859,8 +916,8 @@ def main():
               "rather than by convergence:")
         for s, m in offenders:
             print(f"      seed {s}: {m}")
-        print("*** These models are under-trained relative to the ones that "
-              "early-stopped. Raise --epochs before quoting the comparison.")
+        print("*** Inspect validation histories and disclose the budget limit. "
+              "Early stopping is not proof of a globally optimal model.")
     else:
         print(f"Epoch-cap check: every model early-stopped in every seed "
               f"(cap {args.epochs}, patience {args.patience}). "

@@ -62,13 +62,13 @@ compute and writes over results/, so it has to be asked for explicitly.
                  over results/metrics.json.
 
   verify         Re-run seeds 0-2 at the reported settings and diff them
-                 against results/reference/reported_run.json, per model.
+                 against results/legacy-v1/reference/reported_run.json, per model.
                  Prints which models reproduced exactly and how far the others
                  drifted. Takes roughly an hour on CPU.
 
   <command...>   Anything else is executed as given, e.g.
                    python -m src.run_study --seeds 0 1 2
-                   python -m src.report results/metrics.json
+                   python -m src.report results/final-v2/metrics.json
                    python tools/diagnose_training_chaos.py
 
 Mount both volumes so the dataset is cached and the results survive the

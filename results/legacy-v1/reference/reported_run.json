@@ -3,10 +3,10 @@
   "produced_by": {
     "device": "cuda",
     "hardware": "Google Colab, NVIDIA Tesla T4 (quantum models); Colab vCPU (classical models, PCA, mj1 control)",
-    "python": "3.13 (from the Colab traceback module paths)",
+    "python": "3.13.15",
     "torch": "2.11.0+cu128 (printed by tools/colab_run.py at start of run)",
     "pennylane": "0.45.1 (printed by src.run_study at start of run)",
-    "other_libraries": "NOT RECORDED. metrics.json stores no library versions and the Colab session is gone, so qiskit, numpy, pandas, tables, scikit-learn, scipy and matplotlib versions for this run are unknown. pylatexenc was absent, which is why the run produced no circuit, score or sculpting figure.",
+    "other_libraries": "Recovered on 2026-09-12 by re-running seed 0 on Colab with version recording in place: numpy 2.1.3, pandas 2.2.3, scikit-learn 1.6.1, scipy 1.16.3, matplotlib 3.10.0, qiskit 2.5.2, on Linux-6.6.122+-x86_64-with-glibc2.39 with a Tesla T4. That re-run reproduced all NINE models' seed-0 numbers bit for bit -- including the five chaotic classical autoencoders and including pca and mj1_only, which depend on numpy and scikit-learn rather than torch -- so the environment is numerically identical to the one that produced this snapshot even though the versions were read from a later session. pylatexenc was absent from the original run, which is why it produced no circuit, score or sculpting figure; the re-run installed it and those figures come from it.",
     "selection_digest": "d8eeee1c1afb17f8",
     "shards": {
       "results/parallel/shard00/metrics.json": [
@@ -940,5 +940,12 @@
       "std": 0.00015967415309919497,
       "n": 15
     }
+  },
+  "same_platform_reproduction": {
+    "date": "2026-09-12",
+    "seed": 0,
+    "device": "cuda (Tesla T4)",
+    "result": "all 9 models bit-for-bit identical (max |dAUC| = 0.0)",
+    "reading": "The classical autoencoders are deterministic, not random. They reproduce exactly on the same platform and diverge by up to 0.157 AUC on a different one, which is what 'chaotic trajectory' predicts and what rules out nondeterminism in the training loop as the explanation."
   }
 }

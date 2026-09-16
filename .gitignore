@@ -4,3 +4,16 @@ data/
 __pycache__/
 *.pyc
 *.DS_Store
+
+# Per-event score dumps (--save-first). 68 MB each and regenerable by
+# re-running the seed, so they do not belong in git history. The one behind
+# the committed score and sculpting figures is kept locally at
+# results/legacy-v1/parallel/seed0_scores/first_seed_scores.npz; see
+# results/legacy-v1/reference/README.md for what it is and how to redraw from it.
+*.npz
+
+# New notebook experiments; reported artifacts remain under results/.
+runs/
+
+# Interview preparation belongs outside the public checkout.
+CV_PROJECT.md
